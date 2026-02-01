@@ -356,11 +356,13 @@ const BlogEdit = () => {
                   <MenuItem value="">
                     <em>None</em>
                   </MenuItem>
-                  <MenuItem value="Wildlife">Wildlife</MenuItem>
-                  <MenuItem value="Travel Tips">Travel Tips</MenuItem>
-                  <MenuItem value="Conservation">Conservation</MenuItem>
-                  <MenuItem value="Photography">Photography</MenuItem>
-                  <MenuItem value="Guides">Guides</MenuItem>
+                  <MenuItem value="Agri-Finance">Agri-Finance</MenuItem>
+                  <MenuItem value="Agri-Tech">Agri-Tech</MenuItem>
+                  <MenuItem value="Climate-Smart">Climate-Smart</MenuItem>
+                  <MenuItem value="Livestock">Livestock</MenuItem>
+                  <MenuItem value="Regenerative">Regenerative</MenuItem>
+                  <MenuItem value="Marketing">Marketing</MenuItem>
+                  <MenuItem value="Sustainable Tech">Sustainable Tech</MenuItem>
                   <MenuItem value="Other">Other</MenuItem>
                 </Select>
               </FormControl>

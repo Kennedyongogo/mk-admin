@@ -54,7 +54,7 @@ const BlogCreate = () => {
     status: "draft",
   });
 
-  const categoryOptions = ["Wildlife", "Travel Tips", "Conservation", "Photography", "Guides", "Other"];
+  const categoryOptions = ["Agri-Finance", "Agri-Tech", "Climate-Smart", "Livestock", "Regenerative", "Marketing", "Sustainable Tech", "Other"];
 
   const handleInputChange = (field, value) => {
     setBlogForm((prev) => ({ ...prev, [field]: value }));
