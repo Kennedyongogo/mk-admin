@@ -8,10 +8,6 @@ import Blogs from "./Blogs/Blogs";
 import BlogCreate from "./Blogs/BlogCreate";
 import BlogView from "./Blogs/BlogView";
 import BlogEdit from "./Blogs/BlogEdit";
-import Camps from "./Camps&Lodges/Camps";
-import CampCreate from "./Camps&Lodges/CampCreate";
-import CampView from "./Camps&Lodges/CampView";
-import CampEdit from "./Camps&Lodges/CampEdit";
 import Destinations from "./destinations/Destinations";
 import DestinationCreate from "./destinations/DestinationCreate";
 import DestinationView from "./destinations/DestinationView";
@@ -47,6 +43,10 @@ import InterestEdit from "./byinterest/InterestEdit";
 import PackageInquiries from "./package inquiry/PackageInquiry";
 import PackageInquiryView from "./package inquiry/PackageView";
 import PackageInquiryReply from "./package inquiry/PackageReply";
+import Projects from "./Projects/Projects";
+import ProjectView from "./Projects/ProjectView";
+import ProjectCreate from "./Projects/ProjectCreate";
+import ProjectEdit from "./Projects/ProjectEdit";
 
 function PageRoutes() {
   const [user, setUser] = useState(null);
@@ -94,10 +94,6 @@ function PageRoutes() {
             <Route path="blogs/create" element={<BlogCreate />} />
             <Route path="blogs/:id" element={<BlogView />} />
             <Route path="blogs/:id/edit" element={<BlogEdit />} />
-            <Route path="camp-lodges" element={<Camps />} />
-            <Route path="camp-lodges/create" element={<CampCreate />} />
-            <Route path="camp-lodges/:id" element={<CampView />} />
-            <Route path="camp-lodges/:id/edit" element={<CampEdit />} />
             <Route path="forms" element={<Form />} />
             <Route path="forms/create" element={<FormCreate />} />
             <Route path="forms/:id" element={<FormView />} />
@@ -110,6 +106,10 @@ function PageRoutes() {
             <Route path="destinations/create" element={<DestinationCreate />} />
             <Route path="destinations/:id" element={<DestinationView />} />
             <Route path="destinations/:id/edit" element={<DestinationEdit />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/create" element={<ProjectCreate />} />
+            <Route path="projects/:id" element={<ProjectView />} />
+            <Route path="projects/:id/edit" element={<ProjectEdit />} />
             <Route path="tours" element={<Tour />} />
             <Route path="tours/create" element={<TourCreate />} />
             <Route path="tours/:id" element={<TourView />} />

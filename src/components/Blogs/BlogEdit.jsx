@@ -6,7 +6,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   TextField,
   Button,
   FormControl,
@@ -19,6 +18,9 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  Divider,
+  Chip,
+  OutlinedInput,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -44,6 +46,7 @@ const BlogEdit = () => {
   const [authorPreview, setAuthorPreview] = useState(null);
   const [originalAuthorImage, setOriginalAuthorImage] = useState(null);
   const [deleteAuthorImage, setDeleteAuthorImage] = useState(false);
+  const [blogList, setBlogList] = useState([]);
 
   const [blogForm, setBlogForm] = useState({
     slug: "",
@@ -54,10 +57,15 @@ const BlogEdit = () => {
     tags: "",
     featured: false,
     priority: 0,
+    heroAltText: "",
     authorName: "",
+    authorBio: "",
     readTime: "",
     publishDate: "",
     status: "draft",
+    metaTitle: "",
+    metaDescription: "",
+    relatedPostIds: [],
   });
 
   const buildImageUrl = (path) => {
@@ -70,6 +78,18 @@ const BlogEdit = () => {
 
   useEffect(() => {
     fetchBlog();
+  }, [id]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("/api/blogs?limit=200", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setBlogList(data.data.filter((b) => b.id !== id));
+        }
+      })
+      .catch(() => setBlogList([]));
   }, [id]);
 
   const fetchBlog = async () => {
@@ -93,12 +113,15 @@ const BlogEdit = () => {
         tags: Array.isArray(b.tags) ? b.tags.join(", ") : "",
         featured: !!b.featured,
         priority: b.priority ?? 0,
+        heroAltText: b.heroAltText || "",
         authorName: b.authorName || "",
-        readTime: b.readTime || "",
+        authorBio: b.authorBio || "",
+        readTime: b.readTime ?? "",
         publishDate: b.publishDate ? b.publishDate.split("T")[0] : "",
         status: b.status || "draft",
-        ctaText: b.ctaText || "",
-        ctaUrl: b.ctaUrl || "",
+        metaTitle: b.metaTitle || "",
+        metaDescription: b.metaDescription || "",
+        relatedPostIds: Array.isArray(b.relatedPostIds) ? b.relatedPostIds : [],
       });
       const featuredImgUrl = buildImageUrl(b.featuredImage);
       const authorImgUrl = buildImageUrl(b.authorImage);
@@ -173,10 +196,17 @@ const BlogEdit = () => {
       if (blogForm.category) formData.append("category", blogForm.category);
       formData.append("featured", blogForm.featured);
       formData.append("priority", blogForm.priority || 0);
+      if (blogForm.heroAltText) formData.append("heroAltText", blogForm.heroAltText);
       if (blogForm.authorName) formData.append("authorName", blogForm.authorName);
+      if (blogForm.authorBio) formData.append("authorBio", blogForm.authorBio);
       if (blogForm.readTime) formData.append("readTime", blogForm.readTime);
       if (blogForm.publishDate) formData.append("publishDate", blogForm.publishDate);
       if (blogForm.status) formData.append("status", blogForm.status);
+      if (blogForm.metaTitle) formData.append("metaTitle", blogForm.metaTitle);
+      if (blogForm.metaDescription) formData.append("metaDescription", blogForm.metaDescription);
+      if (blogForm.relatedPostIds?.length) {
+        formData.append("relatedPostIds", JSON.stringify(blogForm.relatedPostIds));
+      }
       if (blogForm.tags) {
         formData.append(
           "tags",
@@ -372,11 +402,23 @@ const BlogEdit = () => {
                 value={blogForm.tags}
                 onChange={(e) => handleInputChange("tags", e.target.value)}
               />
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                Author
+              </Typography>
               <TextField
                 fullWidth
                 label="Author Name"
                 value={blogForm.authorName}
                 onChange={(e) => handleInputChange("authorName", e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Author Bio"
+                multiline
+                rows={2}
+                value={blogForm.authorBio}
+                onChange={(e) => handleInputChange("authorBio", e.target.value)}
               />
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
@@ -513,9 +555,20 @@ const BlogEdit = () => {
                 }
                 label="Featured"
               />
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                Featured Image
+              </Typography>
+              <TextField
+                fullWidth
+                label="Hero / Featured Image Alt Text"
+                value={blogForm.heroAltText}
+                onChange={(e) => handleInputChange("heroAltText", e.target.value)}
+                helperText="Accessibility and SEO"
+              />
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
-                  Featured Image
+                  Featured Image File
                 </Typography>
                 <Box mb={2}>
                   <input
@@ -603,6 +656,71 @@ const BlogEdit = () => {
                   </Box>
                 )}
               </Box>
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                SEO & Meta
+              </Typography>
+              <TextField
+                fullWidth
+                label="Meta Title"
+                value={blogForm.metaTitle}
+                onChange={(e) => handleInputChange("metaTitle", e.target.value)}
+                helperText="Browser tab / search result title"
+              />
+              <TextField
+                fullWidth
+                label="Meta Description"
+                multiline
+                rows={2}
+                value={blogForm.metaDescription}
+                onChange={(e) => handleInputChange("metaDescription", e.target.value)}
+                helperText="Search result snippet"
+              />
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                Related posts
+              </Typography>
+              <FormControl fullWidth>
+                <InputLabel id="related-posts-label-edit">Related posts</InputLabel>
+                <Select
+                  labelId="related-posts-label-edit"
+                  multiple
+                  value={blogForm.relatedPostIds}
+                  onChange={(e) => handleInputChange("relatedPostIds", e.target.value)}
+                  input={<OutlinedInput label="Related posts" />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {selected.map((id) => {
+                        const blog = blogList.find((b) => b.id === id);
+                        return (
+                          <Chip
+                            key={id}
+                            label={blog ? blog.title : id}
+                            size="small"
+                            onDelete={() =>
+                              handleInputChange(
+                                "relatedPostIds",
+                                blogForm.relatedPostIds.filter((x) => x !== id)
+                              )
+                            }
+                          />
+                        );
+                      })}
+                    </Box>
+                  )}
+                >
+                  {blogList.map((blog) => (
+                    <MenuItem key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </MenuItem>
+                  ))}
+                  {blogList.length === 0 && (
+                    <MenuItem disabled>No other blogs</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
             </Stack>
           </CardContent>
         </Card>

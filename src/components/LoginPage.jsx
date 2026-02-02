@@ -37,8 +37,8 @@ const backgroundLight = "#f6f8f6";
 const backgroundDark = "#102213";
 const textPrimary = "#111812";
 
-// Left panel background image (cornfield under blue sky - from public folder)
-const leftPanelImage = "/corn-field-440338_1280.jpg";
+// Left panel background image (sunflower field - from public folder)
+const leftPanelImage = "/sunflower-1627193_1920.jpg";
 
 export default function LoginPage() {
   const theme = useTheme();
@@ -259,7 +259,7 @@ export default function LoginPage() {
               position: "absolute",
               inset: 0,
               backgroundImage: `url(${leftPanelImage})`,
-              backgroundSize: "contain",
+              backgroundSize: "cover",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",
               bgcolor: backgroundDark,
@@ -270,8 +270,7 @@ export default function LoginPage() {
             sx={{
               position: "absolute",
               inset: 0,
-              bgcolor: "rgba(16, 34, 19, 0.4)",
-              backdropFilter: "blur(2px)",
+              bgcolor: "rgba(16, 34, 19, 0.25)",
             }}
           />
           <Box
@@ -619,58 +618,6 @@ export default function LoginPage() {
             >
               © 2024 MK Agribusiness Consultants. All rights reserved.
             </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "clamp(4px, 1vw, 8px)",
-                mt: "clamp(4px, 1vh, 8px)",
-                flexWrap: "wrap",
-              }}
-            >
-              <Typography
-                component="a"
-                href="#"
-                variant="caption"
-                sx={{
-                  color: "grey.500",
-                  "&:hover": { color: earthBrown },
-                  fontSize: "clamp(0.65rem, 1.2vw + 0.3rem, 0.75rem)",
-                }}
-              >
-                Privacy Policy
-              </Typography>
-              <Typography component="span" variant="caption" color="grey.400">
-                •
-              </Typography>
-              <Typography
-                component="a"
-                href="#"
-                variant="caption"
-                sx={{
-                  color: "grey.500",
-                  "&:hover": { color: earthBrown },
-                  fontSize: "clamp(0.65rem, 1.2vw + 0.3rem, 0.75rem)",
-                }}
-              >
-                Security
-              </Typography>
-              <Typography component="span" variant="caption" color="grey.400">
-                •
-              </Typography>
-              <Typography
-                component="a"
-                href="#"
-                variant="caption"
-                sx={{
-                  color: "grey.500",
-                  "&:hover": { color: earthBrown },
-                  fontSize: "clamp(0.65rem, 1.2vw + 0.3rem, 0.75rem)",
-                }}
-              >
-                Contact Support
-              </Typography>
-            </Box>
           </Box>
         </Box>
       </Box>

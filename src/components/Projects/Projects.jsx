@@ -26,20 +26,20 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const Camps = () => {
+const Projects = () => {
   const navigate = useNavigate();
-  const [lodges, setLodges] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalLodges, setTotalLodges] = useState(0);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    fetchLodges();
+    fetchProjects();
   }, [page, rowsPerPage]);
 
-  const fetchLodges = async () => {
+  const fetchProjects = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,11 +52,11 @@ const Camps = () => {
       const queryParams = new URLSearchParams({
         page: (page + 1).toString(),
         limit: rowsPerPage.toString(),
-        sortBy: "createdAt",
-        sortOrder: "DESC",
+        sortBy: "displayOrder",
+        sortOrder: "ASC",
       });
 
-      const response = await fetch(`/api/lodges?${queryParams}`, {
+      const response = await fetch(`/api/projects?${queryParams}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -65,22 +65,22 @@ const Camps = () => {
 
       const data = await response.json();
       if (data.success) {
-        setLodges(data.data || []);
-        setTotalLodges(data.pagination?.total || data.data?.length || 0);
+        setProjects(data.data || []);
+        setTotal(data.pagination?.total ?? data.data?.length ?? 0);
       } else {
-        setError(data.message || "Failed to fetch lodges");
+        setError(data.message || "Failed to fetch projects");
       }
     } catch (err) {
-      setError(err.message || "Error fetching lodges");
+      setError(err.message || "Error fetching projects");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (lodge) => {
+  const handleDelete = async (project) => {
     const result = await Swal.fire({
-      title: "Delete lodge?",
-      text: `"${lodge.name}" will be removed.`,
+      title: "Delete project?",
+      text: `"${project.title}" will be removed.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -99,7 +99,7 @@ const Camps = () => {
         return;
       }
 
-      const response = await fetch(`/api/lodges/${lodge.id}`, {
+      const response = await fetch(`/api/projects/${project.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -108,35 +108,26 @@ const Camps = () => {
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete lodge");
+        throw new Error(data.message || "Failed to delete project");
       }
 
       await Swal.fire({
         icon: "success",
         title: "Deleted",
-        text: `"${lodge.name}" removed successfully.`,
+        text: `"${project.title}" removed successfully.`,
         timer: 1400,
         showConfirmButton: false,
       });
-      fetchLodges();
+      fetchProjects();
     } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Failed to delete lodge",
+        text: err.message || "Failed to delete project",
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (value) => {
-    if (!value) return "—";
-    return new Date(value).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   const handleChangePage = (_event, newPage) => setPage(newPage);
@@ -175,15 +166,15 @@ const Camps = () => {
             variant="h4"
             sx={{ fontWeight: 800, textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
           >
-            Camps & Lodges
+            Projects
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Manage camp & lodge entries
+            Manage foundation projects
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate("/camp-lodges/create")}
+            onClick={() => navigate("/projects/create")}
             sx={{
               position: "absolute",
               right: 24,
@@ -199,7 +190,7 @@ const Camps = () => {
               },
             }}
           >
-            New Camp / Lodge
+            New Project
           </Button>
         </Box>
 
@@ -229,64 +220,81 @@ const Camps = () => {
                     },
                   }}
                 >
-                  <TableCell>NO</TableCell>
+                  <TableCell>#</TableCell>
                   <TableCell>Title</TableCell>
+                  <TableCell>Location</TableCell>
                   <TableCell>Category</TableCell>
-                  <TableCell>Type</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Execution</TableCell>
+                  <TableCell>Featured</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <CircularProgress sx={{ color: "#6B4E3D" }} />
                     </TableCell>
                   </TableRow>
-                ) : lodges.length === 0 ? (
+                ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">No camps or lodges found.</Typography>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">No projects found.</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  lodges.map((lodge, idx) => (
-                    <TableRow key={lodge.id} hover>
+                  projects.map((project, idx) => (
+                    <TableRow key={project.id} hover>
                       <TableCell sx={{ fontWeight: 600 }}>
                         {page * rowsPerPage + idx + 1}
                       </TableCell>
                       <TableCell sx={{ maxWidth: 220 }}>
                         <Typography variant="body2" fontWeight={700} color="#2c3e50">
-                          {lodge.name}
+                          {project.title}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {lodge.location}
-                        </Typography>
+                        {project.shortDescription && (
+                          <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                            {project.shortDescription.slice(0, 50)}…
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{project.location || "—"}</Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={lodge.destination || "—"}
+                          label={project.category || "—"}
                           size="small"
                           sx={{ textTransform: "capitalize" }}
                         />
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                          {(lodge.campType || []).slice(0, 3).map((ct) => (
-                            <Chip
-                              key={ct}
-                              label={ct}
-                              size="small"
-                              sx={{ textTransform: "capitalize" }}
-                            />
-                          ))}
-                        </Box>
+                        <Chip
+                          label={project.status || "draft"}
+                          size="small"
+                          color={project.status === "published" ? "success" : "default"}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={project.projectStatus || "pending"}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {project.featured ? (
+                          <Chip label="Yes" size="small" color="primary" />
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">—</Typography>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Tooltip title="View">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/camp-lodges/${lodge.id}`)}
+                            onClick={() => navigate(`/projects/${project.id}`)}
                             sx={{ color: "#27ae60" }}
                           >
                             <ViewIcon fontSize="small" />
@@ -295,7 +303,7 @@ const Camps = () => {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/camp-lodges/${lodge.id}/edit`)}
+                            onClick={() => navigate(`/projects/${project.id}/edit`)}
                             sx={{ color: "#3498db" }}
                           >
                             <EditIcon fontSize="small" />
@@ -304,7 +312,7 @@ const Camps = () => {
                         <Tooltip title="Delete">
                           <IconButton
                             size="small"
-                            onClick={() => handleDelete(lodge)}
+                            onClick={() => handleDelete(project)}
                             sx={{ color: "#e74c3c" }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -320,7 +328,7 @@ const Camps = () => {
 
           <TablePagination
             component="div"
-            count={totalLodges}
+            count={total}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
@@ -334,4 +342,4 @@ const Camps = () => {
   );
 };
 
-export default Camps;
+export default Projects;

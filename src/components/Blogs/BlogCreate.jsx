@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
   Typography,
   Card,
   CardContent,
-  Grid,
   TextField,
   Button,
   FormControl,
@@ -18,6 +17,9 @@ import {
   IconButton,
   Checkbox,
   FormControlLabel,
+  Divider,
+  Chip,
+  OutlinedInput,
 } from "@mui/material";
 import {
   Save,
@@ -38,6 +40,7 @@ const BlogCreate = () => {
   const [featuredPreview, setFeaturedPreview] = useState(null);
   const [authorFile, setAuthorFile] = useState(null);
   const [authorPreview, setAuthorPreview] = useState(null);
+  const [blogList, setBlogList] = useState([]);
 
   const [blogForm, setBlogForm] = useState({
     slug: "",
@@ -48,11 +51,26 @@ const BlogCreate = () => {
     tags: "",
     featured: false,
     priority: 0,
+    heroAltText: "",
     authorName: "",
+    authorBio: "",
     readTime: "",
     publishDate: "",
     status: "draft",
+    metaTitle: "",
+    metaDescription: "",
+    relatedPostIds: [],
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("/api/blogs?limit=200", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) setBlogList(data.data);
+      })
+      .catch(() => setBlogList([]));
+  }, []);
 
   const categoryOptions = ["Agri-Finance", "Agri-Tech", "Climate-Smart", "Livestock", "Regenerative", "Marketing", "Sustainable Tech", "Other"];
 
@@ -130,12 +148,17 @@ const BlogCreate = () => {
         );
       formData.append("featured", blogForm.featured);
       formData.append("priority", blogForm.priority || 0);
+      if (blogForm.heroAltText) formData.append("heroAltText", blogForm.heroAltText);
       if (blogForm.authorName) formData.append("authorName", blogForm.authorName);
+      if (blogForm.authorBio) formData.append("authorBio", blogForm.authorBio);
       if (blogForm.readTime) formData.append("readTime", blogForm.readTime);
       if (blogForm.publishDate) formData.append("publishDate", blogForm.publishDate);
       if (blogForm.status) formData.append("status", blogForm.status);
-      if (blogForm.ctaText) formData.append("ctaText", blogForm.ctaText);
-      if (blogForm.ctaUrl) formData.append("ctaUrl", blogForm.ctaUrl);
+      if (blogForm.metaTitle) formData.append("metaTitle", blogForm.metaTitle);
+      if (blogForm.metaDescription) formData.append("metaDescription", blogForm.metaDescription);
+      if (blogForm.relatedPostIds?.length) {
+        formData.append("relatedPostIds", JSON.stringify(blogForm.relatedPostIds));
+      }
 
       if (featuredFile) {
         formData.append("blog_image", featuredFile);
@@ -324,11 +347,23 @@ const BlogCreate = () => {
                 value={blogForm.tags}
                 onChange={(e) => handleInputChange("tags", e.target.value)}
               />
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                Author
+              </Typography>
               <TextField
                 fullWidth
                 label="Author Name"
                 value={blogForm.authorName}
                 onChange={(e) => handleInputChange("authorName", e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Author Bio"
+                multiline
+                rows={2}
+                value={blogForm.authorBio}
+                onChange={(e) => handleInputChange("authorBio", e.target.value)}
               />
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
@@ -467,9 +502,20 @@ const BlogCreate = () => {
                 }
                 label="Featured"
               />
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                Featured Image
+              </Typography>
+              <TextField
+                fullWidth
+                label="Hero / Featured Image Alt Text"
+                value={blogForm.heroAltText}
+                onChange={(e) => handleInputChange("heroAltText", e.target.value)}
+                helperText="Accessibility and SEO"
+              />
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
-                  Featured Image
+                  Featured Image File
                 </Typography>
                 <Box mb={2}>
                   <input
@@ -560,6 +606,71 @@ const BlogCreate = () => {
                   </Box>
                 )}
               </Box>
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                SEO & Meta
+              </Typography>
+              <TextField
+                fullWidth
+                label="Meta Title"
+                value={blogForm.metaTitle}
+                onChange={(e) => handleInputChange("metaTitle", e.target.value)}
+                helperText="Browser tab / search result title"
+              />
+              <TextField
+                fullWidth
+                label="Meta Description"
+                multiline
+                rows={2}
+                value={blogForm.metaDescription}
+                onChange={(e) => handleInputChange("metaDescription", e.target.value)}
+                helperText="Search result snippet"
+              />
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                Related posts
+              </Typography>
+              <FormControl fullWidth>
+                <InputLabel id="related-posts-label">Related posts</InputLabel>
+                <Select
+                  labelId="related-posts-label"
+                  multiple
+                  value={blogForm.relatedPostIds}
+                  onChange={(e) => handleInputChange("relatedPostIds", e.target.value)}
+                  input={<OutlinedInput label="Related posts" />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {selected.map((id) => {
+                        const blog = blogList.find((b) => b.id === id);
+                        return (
+                          <Chip
+                            key={id}
+                            label={blog ? blog.title : id}
+                            size="small"
+                            onDelete={() =>
+                              handleInputChange(
+                                "relatedPostIds",
+                                blogForm.relatedPostIds.filter((x) => x !== id)
+                              )
+                            }
+                          />
+                        );
+                      })}
+                    </Box>
+                  )}
+                >
+                  {blogList.map((blog) => (
+                    <MenuItem key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </MenuItem>
+                  ))}
+                  {blogList.length === 0 && (
+                    <MenuItem disabled>No other blogs yet</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
 
               <Box display="flex" gap={2}>
               <Button
