@@ -26,20 +26,20 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const Traveller = () => {
+const Services = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
+  const [totalServices, setTotalServices] = useState(0);
 
   useEffect(() => {
-    fetchTravellerItems();
+    fetchServices();
   }, [page, rowsPerPage]);
 
-  const fetchTravellerItems = async () => {
+  const fetchServices = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,11 +52,11 @@ const Traveller = () => {
       const queryParams = new URLSearchParams({
         page: (page + 1).toString(),
         limit: rowsPerPage.toString(),
-        sortBy: "createdAt",
-        sortOrder: "DESC",
+        sortBy: "displayOrder",
+        sortOrder: "ASC",
       });
 
-      const response = await fetch(`/api/traveller-gallery?${queryParams}`, {
+      const response = await fetch(`/api/services?${queryParams}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -65,23 +65,22 @@ const Traveller = () => {
 
       const data = await response.json();
       if (data.success) {
-        const list = data.data?.items || [];
-        setItems(list);
-        setTotalItems(data.data?.pagination?.totalItems || list.length || 0);
+        setServices(data.data || []);
+        setTotalServices(data.pagination?.total || data.data?.length || 0);
       } else {
-        setError(data.message || "Failed to fetch traveller gallery items");
+        setError(data.message || "Failed to fetch services");
       }
     } catch (err) {
-      setError(err.message || "Error fetching traveller gallery items");
+      setError(err.message || "Error fetching services");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (item) => {
+  const handleDelete = async (service) => {
     const result = await Swal.fire({
-      title: "Delete traveller gallery item?",
-      text: `"${item.title}" will be removed.`,
+      title: "Delete service?",
+      text: `"${service.title}" will be removed.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -100,7 +99,7 @@ const Traveller = () => {
         return;
       }
 
-      const response = await fetch(`/api/traveller-gallery/${item.id}`, {
+      const response = await fetch(`/api/services/${service.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -109,35 +108,26 @@ const Traveller = () => {
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete traveller gallery item");
+        throw new Error(data.message || "Failed to delete service");
       }
 
       await Swal.fire({
         icon: "success",
         title: "Deleted",
-        text: `"${item.title}" removed successfully.`,
+        text: `"${service.title}" removed successfully.`,
         timer: 1400,
         showConfirmButton: false,
       });
-      fetchTravellerItems();
+      fetchServices();
     } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Failed to delete traveller gallery item",
+        text: err.message || "Failed to delete service",
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (value) => {
-    if (!value) return "—";
-    return new Date(value).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   const handleChangePage = (_event, newPage) => setPage(newPage);
@@ -176,15 +166,15 @@ const Traveller = () => {
             variant="h4"
             sx={{ fontWeight: 800, textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
           >
-            By Traveller
+            Services
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Manage “By Traveller” gallery items
+            Manage service entries
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate("/traveller/create")}
+            onClick={() => navigate("/services/create")}
             sx={{
               position: "absolute",
               right: 24,
@@ -200,7 +190,7 @@ const Traveller = () => {
               },
             }}
           >
-            New Item
+            New Service
           </Button>
         </Box>
 
@@ -232,89 +222,64 @@ const Traveller = () => {
                 >
                   <TableCell>NO</TableCell>
                   <TableCell>Title</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Type</TableCell>
+                  <TableCell>Slug</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell>Featured</TableCell>
-                  <TableCell>Priority</TableCell>
-                  <TableCell>Created</TableCell>
+                  <TableCell>Key / Featured</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <CircularProgress sx={{ color: "#6B4E3D" }} />
                     </TableCell>
                   </TableRow>
-                ) : items.length === 0 ? (
+                ) : services.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                        No traveller gallery items found.
-                      </Typography>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">No services found.</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  items.map((item, idx) => (
-                    <TableRow key={item.id} hover>
+                  services.map((service, idx) => (
+                    <TableRow key={service.id} hover>
                       <TableCell sx={{ fontWeight: 600 }}>
                         {page * rowsPerPage + idx + 1}
                       </TableCell>
                       <TableCell sx={{ maxWidth: 220 }}>
                         <Typography variant="body2" fontWeight={700} color="#2c3e50">
-                          {item.title}
+                          {service.title}
                         </Typography>
+                        {service.shortDescription && (
+                          <Typography variant="caption" color="text.secondary" noWrap display="block" sx={{ maxWidth: 200 }}>
+                            {service.shortDescription}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Typography variant="caption" color="text.secondary">
-                          {item.id}
+                          {service.slug}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={item.category || "—"}
+                          label={service.status || "draft"}
                           size="small"
+                          color={service.status === "published" ? "success" : service.status === "archived" ? "default" : "warning"}
                           sx={{ textTransform: "capitalize" }}
                         />
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={item.type || "—"}
-                          size="small"
-                          sx={{ textTransform: "capitalize" }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={item.isActive ? "Active" : "Inactive"}
-                          size="small"
-                          color={item.isActive ? "success" : "default"}
-                          variant={item.isActive ? "filled" : "outlined"}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={item.isFeatured ? "Yes" : "No"}
-                          size="small"
-                          color={item.isFeatured ? "warning" : "default"}
-                          variant={item.isFeatured ? "filled" : "outlined"}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {Number.isFinite(item.priority) ? item.priority : item.priority ?? 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDate(item.createdAt)}
-                        </Typography>
+                        {service.isKeyService && <Chip label="Key" size="small" sx={{ mr: 0.5 }} />}
+                        {service.featured && <Chip label="Featured" size="small" color="primary" />}
+                        {!service.isKeyService && !service.featured && "—"}
                       </TableCell>
                       <TableCell align="right">
                         <Tooltip title="View">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/traveller/${item.id}`)}
+                            onClick={() => navigate(`/services/${service.id}`)}
                             sx={{ color: "#27ae60" }}
                           >
                             <ViewIcon fontSize="small" />
@@ -323,7 +288,7 @@ const Traveller = () => {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/traveller/${item.id}/edit`)}
+                            onClick={() => navigate(`/services/${service.id}/edit`)}
                             sx={{ color: "#3498db" }}
                           >
                             <EditIcon fontSize="small" />
@@ -332,7 +297,7 @@ const Traveller = () => {
                         <Tooltip title="Delete">
                           <IconButton
                             size="small"
-                            onClick={() => handleDelete(item)}
+                            onClick={() => handleDelete(service)}
                             sx={{ color: "#e74c3c" }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -348,7 +313,7 @@ const Traveller = () => {
 
           <TablePagination
             component="div"
-            count={totalItems}
+            count={totalServices}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
@@ -362,4 +327,4 @@ const Traveller = () => {
   );
 };
 
-export default Traveller;
+export default Services;

@@ -8,10 +8,6 @@ import Blogs from "./Blogs/Blogs";
 import BlogCreate from "./Blogs/BlogCreate";
 import BlogView from "./Blogs/BlogView";
 import BlogEdit from "./Blogs/BlogEdit";
-import Destinations from "./destinations/Destinations";
-import DestinationCreate from "./destinations/DestinationCreate";
-import DestinationView from "./destinations/DestinationView";
-import DestinationEdit from "./destinations/DestinationEdit";
 import Form from "./Form/Form";
 import FormCreate from "./Form/FormCreate";
 import FormView from "./Form/FormView";
@@ -24,29 +20,18 @@ import UsersTable from "./Users/UsersTable";
 import Analytics from "./Analytics/Analytics";
 import Audit from "./Audit/Audit";
 import PublicMembers from "./PublicMembers/PublicMembers";
-import Tour from "./Tour/Tour";
-import TourCreate from "./Tour/TourCreate";
-import TourView from "./Tour/TourView";
-import TourEdit from "./Tour/TourEdit";
-import GalleryList from "./Gallery/GalleryList";
-import GalleryView from "./Gallery/GalleryView";
-import GalleryCreate from "./Gallery/GalleryCreate";
-import GalleryEdit from "./Gallery/GalleryEdit";
-import Traveller from "./bytraveller/Traveller";
-import TravellerCreate from "./bytraveller/TravellerCreate";
-import TravellerView from "./bytraveller/TravellerView";
-import TravellerEdit from "./bytraveller/TravellerEdit";
-import Interest from "./byinterest/Interest";
-import InterestCreate from "./byinterest/InterestCreate";
-import InterestView from "./byinterest/InterestView";
-import InterestEdit from "./byinterest/InterestEdit";
-import PackageInquiries from "./package inquiry/PackageInquiry";
-import PackageInquiryView from "./package inquiry/PackageView";
-import PackageInquiryReply from "./package inquiry/PackageReply";
 import Projects from "./Projects/Projects";
 import ProjectView from "./Projects/ProjectView";
 import ProjectCreate from "./Projects/ProjectCreate";
 import ProjectEdit from "./Projects/ProjectEdit";
+import Services from "./Services/Services";
+import ServiceView from "./Services/ServiceView";
+import ServiceCreate from "./Services/ServiceCreate";
+import ServiceEdit from "./Services/ServiceEdit";
+import FAQs from "./FAQs/FAQs";
+import FAQCreate from "./FAQs/FAQCreate";
+import FAQEdit from "./FAQs/FAQEdit";
+import FAQView from "./FAQs/FAQView";
 
 function PageRoutes() {
   const [user, setUser] = useState(null);
@@ -102,50 +87,29 @@ function PageRoutes() {
               path="forms/:form_id/submissions"
               element={<FormSubmission />}
             />
-            <Route path="destinations" element={<Destinations />} />
-            <Route path="destinations/create" element={<DestinationCreate />} />
-            <Route path="destinations/:id" element={<DestinationView />} />
-            <Route path="destinations/:id/edit" element={<DestinationEdit />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/create" element={<ProjectCreate />} />
             <Route path="projects/:id" element={<ProjectView />} />
             <Route path="projects/:id/edit" element={<ProjectEdit />} />
-            <Route path="tours" element={<Tour />} />
-            <Route path="tours/create" element={<TourCreate />} />
-            <Route path="tours/:id" element={<TourView />} />
-            <Route path="tours/:id/edit" element={<TourEdit />} />
-            <Route path="gallery" element={<GalleryList />} />
-            <Route path="gallery/create" element={<GalleryCreate />} />
-            <Route path="gallery/:id" element={<GalleryView />} />
-            <Route path="gallery/:id/edit" element={<GalleryEdit />} />
-            <Route path="traveller" element={<Traveller />} />
-            <Route path="traveller/create" element={<TravellerCreate />} />
-            <Route path="traveller/:id" element={<TravellerView />} />
-            <Route path="traveller/:id/edit" element={<TravellerEdit />} />
-            <Route path="interest" element={<Interest />} />
-            <Route path="interest/create" element={<InterestCreate />} />
-            <Route path="interest/:id" element={<InterestView />} />
-            <Route path="interest/:id/edit" element={<InterestEdit />} />
+            <Route path="services" element={<Services />} />
+            <Route path="services/create" element={<ServiceCreate />} />
+            <Route path="services/:id" element={<ServiceView />} />
+            <Route path="services/:id/edit" element={<ServiceEdit />} />
             <Route
               path="testimonies"
               element={<Navigate to="/reviews" replace />}
             />
             <Route path="reviews" element={<Review />} />
+            <Route path="faqs" element={<FAQs />} />
+            <Route path="faqs/create" element={<FAQCreate />} />
+            <Route path="faqs/:id" element={<FAQView />} />
+            <Route path="faqs/:id/edit" element={<FAQEdit />} />
             <Route path="map" element={<CharityMap />} />
             <Route path="documents" element={<Documents />} />
             <Route path="public-members" element={<PublicMembers />} />
             <Route path="audit" element={<Audit />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="users" element={<UsersTable />} />
-            <Route path="package-inquiries" element={<PackageInquiries />} />
-            <Route
-              path="package-inquiries/:id"
-              element={<PackageInquiryView />}
-            />
-            <Route
-              path="package-inquiries/:id/reply"
-              element={<PackageInquiryReply />}
-            />
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -24,6 +24,7 @@ import {
   QuestionAnswer,
   Schedule,
   Business,
+  Build,
   Folder,
   History,
   Assessment,
@@ -166,24 +167,14 @@ const Navbar = (props) => {
       path: "/blogs",
     },
     {
-      text: "Destinations",
-      icon: <LocationOn />,
-      path: "/destinations",
-    },
-    {
       text: "Projects",
       icon: <Business />,
       path: "/projects",
     },
     {
-      text: "Itineraries",
-      icon: <Schedule />,
-      path: "/tours",
-    },
-    {
-      text: "Gallery",
-      icon: <Image />,
-      path: "/gallery",
+      text: "Services",
+      icon: <Build />,
+      path: "/services",
     },
     {
       text: "Forms",
@@ -215,19 +206,14 @@ const Navbar = (props) => {
               path: "/reviews",
             },
             {
+              text: "FAQs",
+              icon: <QuestionAnswer />,
+              path: "/faqs",
+            },
+            {
               text: "Public Members",
               icon: <People />,
               path: "/public-members",
-            },
-            {
-              text: "Traveller",
-              icon: <PeopleAlt />,
-              path: "/traveller",
-            },
-            {
-              text: "Interest",
-              icon: <Favorite />,
-              path: "/interest",
             },
           ],
         },

@@ -17,29 +17,39 @@ import {
   TablePagination,
   IconButton,
   Tooltip,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const Destinations = () => {
+const FAQs = () => {
   const navigate = useNavigate();
-  const [destinations, setDestinations] = useState([]);
+  const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalDestinations, setTotalDestinations] = useState(0);
+  const [totalFaqs, setTotalFaqs] = useState(0);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
-    fetchDestinations();
-  }, [page, rowsPerPage]);
+    fetchFaqs();
+  }, [page, rowsPerPage, categoryFilter, statusFilter]);
 
-  const fetchDestinations = async () => {
+  const fetchFaqs = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,11 +62,14 @@ const Destinations = () => {
       const queryParams = new URLSearchParams({
         page: (page + 1).toString(),
         limit: rowsPerPage.toString(),
-        sortBy: "sort_order",
+        sortBy: "displayOrder",
         sortOrder: "ASC",
       });
+      if (search.trim()) queryParams.set("search", search.trim());
+      if (categoryFilter) queryParams.set("category", categoryFilter);
+      if (statusFilter) queryParams.set("status", statusFilter);
 
-      const response = await fetch(`/api/destinations?${queryParams}`, {
+      const response = await fetch(`/api/faqs?${queryParams}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -65,22 +78,28 @@ const Destinations = () => {
 
       const data = await response.json();
       if (data.success) {
-        setDestinations(data.data || []);
-        setTotalDestinations(data.pagination?.total || data.data?.length || 0);
+        setFaqs(data.data || []);
+        setTotalFaqs(data.pagination?.total || 0);
       } else {
-        setError(data.message || "Failed to fetch destinations");
+        setError(data.message || "Failed to fetch FAQs");
       }
     } catch (err) {
-      setError(err.message || "Error fetching destinations");
+      setError(err.message || "Error fetching FAQs");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (destination) => {
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    setPage(0);
+    fetchFaqs();
+  };
+
+  const handleDelete = async (faq) => {
     const result = await Swal.fire({
-      title: "Delete destination?",
-      text: `"${destination.title}" will be removed.`,
+      title: "Delete FAQ?",
+      text: `"${faq.question?.substring(0, 50)}..." will be removed.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -99,7 +118,7 @@ const Destinations = () => {
         return;
       }
 
-      const response = await fetch(`/api/destinations/${destination.id}`, {
+      const response = await fetch(`/api/faqs/${faq.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -108,35 +127,26 @@ const Destinations = () => {
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete destination");
+        throw new Error(data.message || "Failed to delete FAQ");
       }
 
       await Swal.fire({
         icon: "success",
         title: "Deleted",
-        text: `"${destination.title}" removed successfully.`,
+        text: "FAQ removed successfully.",
         timer: 1400,
         showConfirmButton: false,
       });
-      fetchDestinations();
+      fetchFaqs();
     } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Failed to delete destination",
+        text: err.message || "Failed to delete FAQ",
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (value) => {
-    if (!value) return "—";
-    return new Date(value).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   const handleChangePage = (_event, newPage) => setPage(newPage);
@@ -175,15 +185,15 @@ const Destinations = () => {
             variant="h4"
             sx={{ fontWeight: 800, textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
           >
-            Destinations
+            FAQs
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Manage safari destination entries
+            Manage frequently asked questions
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate("/destinations/create")}
+            onClick={() => navigate("/faqs/create")}
             sx={{
               position: "absolute",
               right: 24,
@@ -199,7 +209,7 @@ const Destinations = () => {
               },
             }}
           >
-            New Destination
+            New FAQ
           </Button>
         </Box>
 
@@ -209,6 +219,73 @@ const Destinations = () => {
               {error}
             </Alert>
           )}
+
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+            <Box
+              component="form"
+              onSubmit={handleSearchSubmit}
+              sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}
+            >
+              <TextField
+                size="small"
+                placeholder="Search question or answer..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                sx={{ minWidth: 220 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  label="Category"
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="General">General</MenuItem>
+                  <MenuItem value="Pricing">Pricing</MenuItem>
+                  <MenuItem value="Services">Services</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                type="submit"
+                variant="outlined"
+                onClick={handleSearchSubmit}
+                sx={{
+                  borderColor: "#B85C38",
+                  color: "#B85C38",
+                  "&:hover": { borderColor: "#6B4E3D", backgroundColor: "rgba(184, 92, 56, 0.08)" },
+                }}
+              >
+                Search
+              </Button>
+            </Box>
+          </Box>
 
           <TableContainer
             sx={{
@@ -230,56 +307,59 @@ const Destinations = () => {
                   }}
                 >
                   <TableCell>NO</TableCell>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Subtitle</TableCell>
-                  <TableCell>Location</TableCell>
+                  <TableCell>Question</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Order</TableCell>
+                  <TableCell>Status</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                      <CircularProgress sx={{ color: "#6B4E3D" }} />
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <CircularProgress sx={{ color: "#667eea" }} />
                     </TableCell>
                   </TableRow>
-                ) : destinations.length === 0 ? (
+                ) : faqs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">No destinations found.</Typography>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">No FAQs found.</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  destinations.map((destination, idx) => (
-                    <TableRow key={destination.id} hover>
+                  faqs.map((faq, idx) => (
+                    <TableRow key={faq.id} hover>
                       <TableCell sx={{ fontWeight: 600 }}>
                         {page * rowsPerPage + idx + 1}
                       </TableCell>
-                      <TableCell sx={{ maxWidth: 220 }}>
+                      <TableCell sx={{ maxWidth: 320 }}>
                         <Typography variant="body2" fontWeight={700} color="#2c3e50">
-                          {destination.title}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {destination.slug}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                          {destination.subtitle || "—"}
+                          {faq.question?.length > 80 ? `${faq.question.substring(0, 80)}...` : faq.question}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={destination.location || "—"}
+                          label={faq.category || "—"}
+                          size="small"
+                          variant="outlined"
+                          sx={{ textTransform: "capitalize" }}
+                        />
+                      </TableCell>
+                      <TableCell>{faq.displayOrder ?? 0}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={faq.status}
+                          color={faq.status === "active" ? "success" : "default"}
                           size="small"
                           sx={{ textTransform: "capitalize" }}
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="View">
+                        <Tooltip title="View FAQ">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/destinations/${destination.id}`)}
+                            onClick={() => navigate(`/faqs/${faq.id}`)}
                             sx={{ color: "#27ae60" }}
                           >
                             <ViewIcon fontSize="small" />
@@ -288,7 +368,7 @@ const Destinations = () => {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/destinations/${destination.id}/edit`)}
+                            onClick={() => navigate(`/faqs/${faq.id}/edit`)}
                             sx={{ color: "#3498db" }}
                           >
                             <EditIcon fontSize="small" />
@@ -297,7 +377,7 @@ const Destinations = () => {
                         <Tooltip title="Delete">
                           <IconButton
                             size="small"
-                            onClick={() => handleDelete(destination)}
+                            onClick={() => handleDelete(faq)}
                             sx={{ color: "#e74c3c" }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -313,7 +393,7 @@ const Destinations = () => {
 
           <TablePagination
             component="div"
-            count={totalDestinations}
+            count={totalFaqs}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
@@ -327,4 +407,4 @@ const Destinations = () => {
   );
 };
 
-export default Destinations;
+export default FAQs;
