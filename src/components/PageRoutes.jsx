@@ -32,6 +32,10 @@ import FAQs from "./FAQs/FAQs";
 import FAQCreate from "./FAQs/FAQCreate";
 import FAQEdit from "./FAQs/FAQEdit";
 import FAQView from "./FAQs/FAQView";
+import ContactView from "./Contacts/ContactView";
+import QuoteView from "./Quotations/QuoteView";
+import ConsultationView from "./Consultations/ConsultationView";
+import Submissions from "./Submissions/Submissions";
 
 function PageRoutes() {
   const [user, setUser] = useState(null);
@@ -104,6 +108,10 @@ function PageRoutes() {
             <Route path="faqs/create" element={<FAQCreate />} />
             <Route path="faqs/:id" element={<FAQView />} />
             <Route path="faqs/:id/edit" element={<FAQEdit />} />
+            <Route path="submissions" element={<Submissions />} />
+            <Route path="contacts/:id" element={<ContactView />} />
+            <Route path="quotations/:id" element={<QuoteView />} />
+            <Route path="consultations/:id" element={<ConsultationView />} />
             <Route path="map" element={<CharityMap />} />
             <Route path="documents" element={<Documents />} />
             <Route path="public-members" element={<PublicMembers />} />

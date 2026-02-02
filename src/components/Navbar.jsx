@@ -33,6 +33,11 @@ import {
   Article,
   Event,
   Image,
+  ContactMail,
+  RequestQuote,
+  EventAvailable,
+  Campaign,
+  Assignment,
 } from "@mui/icons-material";
 import { Money } from "@phosphor-icons/react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -190,6 +195,11 @@ const Navbar = (props) => {
           text: "Resources",
           icon: <Folder />,
           subItems: [
+            {
+              text: "Submissions",
+              icon: <Assignment />,
+              path: "/submissions",
+            },
             {
               text: "Documents",
               icon: <Folder />,
