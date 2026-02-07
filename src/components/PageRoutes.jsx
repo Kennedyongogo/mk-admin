@@ -36,6 +36,7 @@ import ContactView from "./Contacts/ContactView";
 import QuoteView from "./Quotations/QuoteView";
 import ConsultationView from "./Consultations/ConsultationView";
 import Submissions from "./Submissions/Submissions";
+import Marketplace from "../Pages/Marketplace";
 
 function PageRoutes() {
   const [user, setUser] = useState(null);
@@ -118,6 +119,7 @@ function PageRoutes() {
             <Route path="audit" element={<Audit />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="users" element={<UsersTable />} />
+            <Route path="marketplace" element={<Marketplace />} />
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -38,6 +38,7 @@ import {
   EventAvailable,
   Campaign,
   Assignment,
+  Storefront,
 } from "@mui/icons-material";
 import { Money } from "@phosphor-icons/react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -190,6 +191,11 @@ const Navbar = (props) => {
       text: "Users",
       icon: <PeopleAlt />,
       path: "/users",
+    },
+    {
+      text: "Marketplace",
+      icon: <Storefront />,
+      path: "/marketplace",
     },
         {
           text: "Resources",
