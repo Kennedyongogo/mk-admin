@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Box, Typography, Card, Stack, Divider, Tabs, Tab } from "@mui/material";
-import { Storefront, People } from "@mui/icons-material";
+import { Storefront, People, School } from "@mui/icons-material";
 import MarketplaceUsers from "../components/MarketplaceUsers/MarketplaceUsers";
+import TrainingOpportunities from "../components/TrainingOpportunities/TrainingOpportunities";
 
 function TabLabel({ icon, label }) {
   return (
@@ -34,6 +35,7 @@ export default function Marketplace() {
         >
           <Tab label={<TabLabel icon={<Storefront fontSize="small" />} label="Overview" />} />
           <Tab label={<TabLabel icon={<People fontSize="small" />} label="Users" />} />
+          <Tab label={<TabLabel icon={<School fontSize="small" />} label="Training & Opportunities" />} />
         </Tabs>
 
         {tab === 0 && (
@@ -43,6 +45,7 @@ export default function Marketplace() {
         )}
 
         {tab === 1 && <MarketplaceUsers />}
+        {tab === 2 && <TrainingOpportunities />}
       </Stack>
     </Box>
   );

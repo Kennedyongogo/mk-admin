@@ -37,6 +37,15 @@ import QuoteView from "./Quotations/QuoteView";
 import ConsultationView from "./Consultations/ConsultationView";
 import Submissions from "./Submissions/Submissions";
 import Marketplace from "../Pages/Marketplace";
+import TrainingEventCreate from "./TrainingOpportunities/TrainingEvents/TrainingEventCreate";
+import TrainingEventEdit from "./TrainingOpportunities/TrainingEvents/TrainingEventEdit";
+import TrainingEventView from "./TrainingOpportunities/TrainingEvents/TrainingEventView";
+import GrantCreate from "./TrainingOpportunities/Grants/GrantCreate";
+import GrantEdit from "./TrainingOpportunities/Grants/GrantEdit";
+import GrantView from "./TrainingOpportunities/Grants/GrantView";
+import PartnerCreate from "./TrainingOpportunities/Partners/PartnerCreate";
+import PartnerEdit from "./TrainingOpportunities/Partners/PartnerEdit";
+import PartnerView from "./TrainingOpportunities/Partners/PartnerView";
 
 function PageRoutes() {
   const [user, setUser] = useState(null);
@@ -120,6 +129,15 @@ function PageRoutes() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="users" element={<UsersTable />} />
             <Route path="marketplace" element={<Marketplace />} />
+            <Route path="marketplace/training-events/create" element={<TrainingEventCreate />} />
+            <Route path="marketplace/training-events/:id" element={<TrainingEventView />} />
+            <Route path="marketplace/training-events/:id/edit" element={<TrainingEventEdit />} />
+            <Route path="marketplace/grants/create" element={<GrantCreate />} />
+            <Route path="marketplace/grants/:id" element={<GrantView />} />
+            <Route path="marketplace/grants/:id/edit" element={<GrantEdit />} />
+            <Route path="marketplace/partners/create" element={<PartnerCreate />} />
+            <Route path="marketplace/partners/:id" element={<PartnerView />} />
+            <Route path="marketplace/partners/:id/edit" element={<PartnerEdit />} />
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
