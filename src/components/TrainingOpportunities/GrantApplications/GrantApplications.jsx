@@ -17,7 +17,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
+import { Visibility as ViewIcon } from "@mui/icons-material";
 
 const GrantApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -27,6 +32,7 @@ const GrantApplications = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewApplication, setViewApplication] = useState(null);
 
   useEffect(() => {
     fetchApplications();
@@ -41,13 +47,27 @@ const GrantApplications = () => {
         setError("No authentication token found. Please login again.");
         return;
       }
-
-      // Note: This would need a new endpoint to get all applications across all grants
-      // For now, showing a placeholder
-      setApplications([]);
-      setTotal(0);
+      const pageParam = page + 1;
+      const statusParam = statusFilter === "all" ? "" : `&status=${encodeURIComponent(statusFilter)}`;
+      const response = await fetch(
+        `/api/grant-applications?page=${pageParam}&limit=${rowsPerPage}${statusParam}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch applications");
+      }
+      if (data.success && Array.isArray(data.data)) {
+        setApplications(data.data);
+        setTotal(data.pagination?.total ?? data.data.length);
+      } else {
+        setApplications([]);
+        setTotal(0);
+      }
     } catch (err) {
       setError(err.message || "Error fetching applications");
+      setApplications([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -139,18 +159,19 @@ const GrantApplications = () => {
                   <TableCell>Grant</TableCell>
                   <TableCell>Application Date</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <CircularProgress sx={{ color: "#ec4899" }} />
                     </TableCell>
                   </TableRow>
                 ) : applications.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">No applications found.</Typography>
                     </TableCell>
                   </TableRow>
@@ -172,12 +193,77 @@ const GrantApplications = () => {
                       <TableCell>
                         <Chip label={app.status || "draft"} size="small" />
                       </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => setViewApplication(app)}
+                          title="View details"
+                        >
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </TableContainer>
+
+          <Dialog
+            open={!!viewApplication}
+            onClose={() => setViewApplication(null)}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{ sx: { borderRadius: 2 } }}
+          >
+            <DialogTitle sx={{ fontWeight: 700 }}>Application details</DialogTitle>
+            <DialogContent>
+              {viewApplication && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Applicant</Typography>
+                    <Typography variant="body1" fontWeight={600}>{viewApplication.user?.fullName || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary">{viewApplication.user?.email || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary">{viewApplication.user?.phone || "—"}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Grant</Typography>
+                    <Typography variant="body1" fontWeight={600}>{viewApplication.grant?.title || "—"}</Typography>
+                    {viewApplication.grant?.amount && (
+                      <Typography variant="body2" color="text.secondary">{viewApplication.grant.amount}</Typography>
+                    )}
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Application date</Typography>
+                    <Typography variant="body1">{formatDate(viewApplication.applicationDate)}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Status</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={viewApplication.status || "draft"} size="small" />
+                    </Box>
+                  </Box>
+                  {viewApplication.applicationData && Object.keys(viewApplication.applicationData).length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Application data</Typography>
+                      <Paper variant="outlined" sx={{ p: 1.5, mt: 0.5, bgcolor: "grey.50" }}>
+                        <Typography component="pre" variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                          {JSON.stringify(viewApplication.applicationData, null, 2)}
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  )}
+                  {viewApplication.notes && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Notes</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>{viewApplication.notes}</Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </DialogContent>
+          </Dialog>
 
           <TablePagination
             component="div"

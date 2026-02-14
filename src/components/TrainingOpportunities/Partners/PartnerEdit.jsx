@@ -132,14 +132,14 @@ const PartnerEdit = () => {
       setForm({
         name: partner.name || "",
         description: partner.description || "",
-        website: partner.website || "",
+        website: partner.websiteUrl || partner.website || "",
         logoAltText: partner.logoAltText || "",
         contactEmail: partner.contactEmail || "",
         contactPhone: partner.contactPhone || "",
         address: partner.address || "",
         sector: partner.sector || "",
         services: Array.isArray(partner.services) ? partner.services : [],
-        featured: partner.featured || false,
+        featured: partner.featured === true,
         isActive: partner.isActive !== undefined ? partner.isActive : true,
       });
       if (partner.logo) {

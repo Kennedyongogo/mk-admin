@@ -163,9 +163,9 @@ const PartnerView = () => {
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.8 }}>Website</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.25 }}>
-                    {partner.website ? (
-                      <Button href={partner.website} target="_blank" rel="noopener noreferrer" size="small">
-                        {partner.website}
+                    {(partner.websiteUrl || partner.website) ? (
+                      <Button href={partner.websiteUrl || partner.website} target="_blank" rel="noopener noreferrer" size="small">
+                        {partner.websiteUrl || partner.website}
                       </Button>
                     ) : "—"}
                   </Typography>

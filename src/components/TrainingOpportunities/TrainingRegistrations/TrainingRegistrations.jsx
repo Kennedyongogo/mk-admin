@@ -17,7 +17,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
+import { Visibility as ViewIcon } from "@mui/icons-material";
 
 const TrainingRegistrations = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -27,6 +32,7 @@ const TrainingRegistrations = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewRegistration, setViewRegistration] = useState(null);
 
   useEffect(() => {
     fetchRegistrations();
@@ -41,13 +47,27 @@ const TrainingRegistrations = () => {
         setError("No authentication token found. Please login again.");
         return;
       }
-
-      // Note: This would need a new endpoint to get all registrations across all events
-      // For now, showing a placeholder
-      setRegistrations([]);
-      setTotal(0);
+      const pageParam = page + 1;
+      const statusParam = statusFilter === "all" ? "" : `&status=${encodeURIComponent(statusFilter)}`;
+      const response = await fetch(
+        `/api/training-registrations?page=${pageParam}&limit=${rowsPerPage}${statusParam}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch registrations");
+      }
+      if (data.success && Array.isArray(data.data)) {
+        setRegistrations(data.data);
+        setTotal(data.pagination?.total ?? data.data.length);
+      } else {
+        setRegistrations([]);
+        setTotal(0);
+      }
     } catch (err) {
       setError(err.message || "Error fetching registrations");
+      setRegistrations([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -138,18 +158,19 @@ const TrainingRegistrations = () => {
                   <TableCell>Training Event</TableCell>
                   <TableCell>Registration Date</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <CircularProgress sx={{ color: "#8b5cf6" }} />
                     </TableCell>
                   </TableRow>
                 ) : registrations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">No registrations found.</Typography>
                     </TableCell>
                   </TableRow>
@@ -171,12 +192,68 @@ const TrainingRegistrations = () => {
                       <TableCell>
                         <Chip label={reg.status || "pending"} size="small" />
                       </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => setViewRegistration(reg)}
+                          title="View details"
+                        >
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </TableContainer>
+
+          <Dialog
+            open={!!viewRegistration}
+            onClose={() => setViewRegistration(null)}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{ sx: { borderRadius: 2 } }}
+          >
+            <DialogTitle sx={{ fontWeight: 700 }}>Registration details</DialogTitle>
+            <DialogContent>
+              {viewRegistration && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">User</Typography>
+                    <Typography variant="body1" fontWeight={600}>{viewRegistration.user?.fullName || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary">{viewRegistration.user?.email || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary">{viewRegistration.user?.phone || "—"}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Training event</Typography>
+                    <Typography variant="body1" fontWeight={600}>{viewRegistration.trainingEvent?.title || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {viewRegistration.trainingEvent?.date ? formatDate(viewRegistration.trainingEvent.date) : "—"}
+                      {viewRegistration.trainingEvent?.location ? ` • ${viewRegistration.trainingEvent.location}` : ""}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Registration date</Typography>
+                    <Typography variant="body1">{formatDate(viewRegistration.registrationDate)}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Status</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={viewRegistration.status || "pending"} size="small" />
+                    </Box>
+                  </Box>
+                  {viewRegistration.notes && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Notes</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>{viewRegistration.notes}</Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </DialogContent>
+          </Dialog>
 
           <TablePagination
             component="div"

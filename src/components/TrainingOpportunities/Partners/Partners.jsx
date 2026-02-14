@@ -209,9 +209,9 @@ const Partners = () => {
                 >
                   <TableCell>#</TableCell>
                   <TableCell>Name</TableCell>
-                  <TableCell>Initial</TableCell>
-                  <TableCell>Partnership Type</TableCell>
-                  <TableCell>Display Order</TableCell>
+                  <TableCell>Sector</TableCell>
+                  <TableCell>Website</TableCell>
+                  <TableCell>Featured</TableCell>
                   <TableCell>Active</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
@@ -241,13 +241,19 @@ const Partners = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip label={partner.initial || "—"} size="small" />
+                        <Typography variant="body2">{partner.sector || "—"}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{partner.partnershipType || "—"}</Typography>
+                        <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>
+                          {partner.websiteUrl || partner.website || "—"}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{partner.displayOrder || 0}</Typography>
+                        <Chip
+                          label={partner.featured ? "Yes" : "No"}
+                          size="small"
+                          color={partner.featured ? "primary" : "default"}
+                        />
                       </TableCell>
                       <TableCell>
                         <Chip
