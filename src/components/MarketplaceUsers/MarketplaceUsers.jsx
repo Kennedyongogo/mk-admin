@@ -14,8 +14,10 @@ import {
   TablePagination,
   Chip,
   IconButton,
+  Tooltip,
 } from "@mui/material";
-import { People as PeopleIcon, Visibility, Delete as DeleteIcon } from "@mui/icons-material";
+import { People as PeopleIcon, Visibility, Delete as DeleteIcon, Verified, VerifiedUser } from "@mui/icons-material";
+import Swal from "sweetalert2";
 import MarketplaceUserView from "./MarketplaceUserView";
 
 const MarketplaceUsers = () => {
@@ -28,6 +30,7 @@ const MarketplaceUsers = () => {
   const [viewUser, setViewUser] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [verifyingId, setVerifyingId] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -80,8 +83,69 @@ const MarketplaceUsers = () => {
     setViewUser(null);
   };
 
+  const isUserVerified = (user) => user?.isVerified === true || user?.is_verified === true;
+
+  const handleVerifyToggle = async (user) => {
+    const verified = isUserVerified(user);
+    const result = await Swal.fire({
+      title: verified ? "Remove verification?" : "Verify this user?",
+      html: verified
+        ? `Remove MK Verified badge from <strong>${user.fullName || user.email}</strong>?`
+        : `Mark <strong>${user.fullName || user.email}</strong> as MK Verified? They will show the verified badge on the marketplace.`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#6B4E3D",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: verified ? "Yes, remove verification" : "Yes, verify",
+      cancelButtonText: "Cancel",
+    });
+    if (!result.isConfirmed) return;
+    setVerifyingId(user.id);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/marketplace/users/${user.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isVerified: !verified }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to update verification");
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, isVerified: !verified, is_verified: !verified } : u))
+      );
+      await Swal.fire({
+        title: "Done",
+        text: verified ? "Verification removed." : "User is now verified.",
+        icon: "success",
+        confirmButtonColor: "#6B4E3D",
+      });
+    } catch (err) {
+      await Swal.fire({
+        title: "Error",
+        text: err.message || "Failed to update verification",
+        icon: "error",
+        confirmButtonColor: "#6B4E3D",
+      });
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
   const handleDelete = async (user) => {
-    if (!window.confirm(`Delete marketplace user "${user.fullName || user.email}"? This cannot be undone.`)) return;
+    const result = await Swal.fire({
+      title: "Delete marketplace user?",
+      html: `Delete <strong>${user.fullName || user.email}</strong>? This cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#b91c1c",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, delete",
+      cancelButtonText: "Cancel",
+    });
+    if (!result.isConfirmed) return;
     setDeletingId(user.id);
     try {
       const token = localStorage.getItem("token");
@@ -92,8 +156,19 @@ const MarketplaceUsers = () => {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Failed to delete user");
       await fetchUsers();
+      await Swal.fire({
+        title: "Deleted",
+        text: "Marketplace user has been deleted.",
+        icon: "success",
+        confirmButtonColor: "#6B4E3D",
+      });
     } catch (err) {
-      setError(err.message || "Error deleting user");
+      await Swal.fire({
+        title: "Error",
+        text: err.message || "Error deleting user",
+        icon: "error",
+        confirmButtonColor: "#6B4E3D",
+      });
     } finally {
       setDeletingId(null);
     }
@@ -180,19 +255,20 @@ const MarketplaceUsers = () => {
                   <TableCell>Email</TableCell>
                   <TableCell>Role</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell align="center">Verified</TableCell>
                   <TableCell align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <CircularProgress sx={{ color: "#6B4E3D" }} />
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">No marketplace users found.</Typography>
                     </TableCell>
                   </TableRow>
@@ -226,6 +302,34 @@ const MarketplaceUsers = () => {
                         />
                       </TableCell>
                       <TableCell align="center">
+                        {isUserVerified(user) ? (
+                          <Chip
+                            size="small"
+                            icon={<Verified sx={{ fontSize: 16 }} />}
+                            label="MK Verified"
+                            color="success"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title={isUserVerified(user) ? "Remove verification" : "Verify user"}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleVerifyToggle(user)}
+                            disabled={verifyingId === user.id}
+                            color={isUserVerified(user) ? "success" : "default"}
+                            sx={{ "&:focus": { outline: "none" }, "&:focus-visible": { outline: "none" } }}
+                          >
+                            {verifyingId === user.id ? (
+                              <CircularProgress size={20} sx={{ color: "success.main" }} />
+                            ) : (
+                              <VerifiedUser fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Tooltip>
                         <IconButton
                           size="small"
                           onClick={() => handleView(user)}
