@@ -67,7 +67,7 @@ const CharityMap = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [tileLoadError, setTileLoadError] = useState(false);
   const [mapInitialized, setMapInitialized] = useState(false);
-  const [charityProjects, setCharityProjects] = useState([]);
+  const [mkProjects, setMkProjects] = useState([]);
   const [selectedProjectDetails, setSelectedProjectDetails] = useState(null);
   const [tooltip, setTooltip] = useState({
     visible: false,
@@ -76,14 +76,7 @@ const CharityMap = () => {
     y: 0,
   });
 
-  const [visibleCategories, setVisibleCategories] = useState({
-    volunteer: true,
-    education: true,
-    mental_health: true,
-    community: true,
-    donation: true,
-    partnership: true,
-  });
+  const [visibleCategories, setVisibleCategories] = useState({});
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -163,7 +156,7 @@ const CharityMap = () => {
     );
   };
 
-  // Find charity projects near user location
+  // Find MK projects near user location
   const findNearMeProjects = () => {
     if (!userLocation) {
       getUserLocation(() => {
@@ -181,7 +174,7 @@ const CharityMap = () => {
     if (!userLocation) return;
 
     const dataToSearch =
-      searchResults.length > 0 ? searchResults : charityProjects;
+      searchResults.length > 0 ? searchResults : mkProjects;
 
     console.log("Performing near me search with:", {
       userLocation,
@@ -316,42 +309,29 @@ const CharityMap = () => {
     }
   }, [showMarker, mapInitialized]);
 
-  // Search charity projects function
   const searchCharityProjects = async (query, column) => {
     setIsSearching(true);
     setSearchError(null);
-
     try {
-      const params = new URLSearchParams({
-        limit: 5000,
-      });
-
-      if (query.trim()) {
-        if (column === "all") {
-          params.append("search", query);
-        } else {
-          params.append(column, query);
-        }
+      const q = (query || "").trim();
+      if (!q) {
+        setSearchResults([]);
+        return [];
       }
-
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/projects?${params}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      const params = new URLSearchParams({ search: q, column: column || "all" });
+      const res = await fetch(`${API_BASE_URL}/map/locations?${params}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await res.json();
+      if (res.ok && result.success && Array.isArray(result.data)) {
+        setSearchResults(result.data);
+        return result.data;
       }
-
-      const data = await response.json();
-      setSearchResults(data?.data || []);
-      return data?.data || [];
+      setSearchResults([]);
+      return [];
     } catch (error) {
-      console.error("Error searching charity projects:", error);
-      setSearchError(error.message);
+      setSearchError(error?.message || "Search failed");
       setSearchResults([]);
       return [];
     } finally {
@@ -359,36 +339,38 @@ const CharityMap = () => {
     }
   };
 
-  // Fetch charity projects
+  // Fetch MK map locations (projects, training events, marketplace users)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchLocations = async () => {
       setIsLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const projectsResponse = await fetch(
-          `${API_BASE_URL}/projects?limit=5000`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!projectsResponse.ok) {
-          throw new Error(`HTTP error! status: ${projectsResponse.status}`);
+        const res = await fetch(`${API_BASE_URL}/map/locations`, {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        if (res.ok && result.success && Array.isArray(result.data)) {
+          const locations = result.data;
+          setMkProjects(locations);
+          const keys = {};
+          locations.forEach((item) => {
+            const key =
+              item.source === "marketplace_user"
+                ? `marketplace_user:${item.category}`
+                : item.source;
+            if (!(key in keys)) keys[key] = true;
+          });
+          setVisibleCategories(keys);
+        } else {
+          setMkProjects([]);
         }
-
-        const projectsData = await projectsResponse.json();
-        setCharityProjects(projectsData?.data || []);
       } catch (error) {
-        console.error("Error fetching charity projects:", error);
-        setCharityProjects([]);
+        setMkProjects([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchData();
+    fetchLocations();
   }, []);
 
   // Debounced search effect
@@ -491,8 +473,8 @@ const CharityMap = () => {
         const properties = feature.get("properties");
         const featureType = properties?.type;
 
-        if (featureType === "charityProject") {
-          // Show tooltip for charity projects
+        if (featureType === "mkProject") {
+          // Show tooltip for MK projects
           const coordinate = event.coordinate;
           const pixel = map.getPixelFromCoordinate(coordinate);
           setTooltip({
@@ -543,7 +525,7 @@ const CharityMap = () => {
         const properties = feature.get("properties");
         const featureType = properties?.type;
 
-        if (featureType === "charityProject") {
+        if (featureType === "mkProject") {
           // Show project details in drawer
           setSelectedProjectDetails(properties);
           setDrawerOpen(true);
@@ -558,53 +540,124 @@ const CharityMap = () => {
     };
   }, [mapInitialized, navigate]);
 
-  // Create charity project markers
-  const createProjectMarkers = (projects, isSearchResult = false) => {
-    return projects
-      .filter(
-        (project) =>
-          project.longitude !== null &&
-          project.latitude !== null &&
-          visibleCategories[project.category]
-      )
-      .map((project) => {
-        const lon = parseFloat(project.longitude); // longitude
-        const lat = parseFloat(project.latitude); // latitude
+  const SOURCE_COLORS = {
+    project: "#4caf50",
+    training_event: "#2196f3",
+    marketplace_user: "#9c27b0",
+  };
 
-        if (isNaN(lon) || isNaN(lat)) {
-          return null;
-        }
+  const USER_ROLE_COLORS = {
+    Farmer: "#2e7d32",
+    Veterinarian: "#1565c0",
+    "Input Supplier": "#ef6c00",
+    Buyer: "#7b1fa2",
+    Consultant: "#00838f",
+  };
+
+  const getVisibilityKey = (item) =>
+    item.source === "marketplace_user"
+      ? `marketplace_user:${item.category}`
+      : item.source;
+
+  const getMarkerSvg = (source, category, isSearchResult = false) => {
+    const strokeWidth = isSearchResult ? 3 : 2;
+    const sw = strokeWidth;
+    const ring = isSearchResult
+      ? `<circle cx="14" cy="14" r="16" fill="none" stroke="#ff9800" stroke-width="2" opacity="0.7"/>`
+      : "";
+
+    if (source === "project") {
+      const color = SOURCE_COLORS.project;
+      return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+        <path d="M16 4L4 10v12l12 6 12-6V10L16 4z" fill="${color}" stroke="white" stroke-width="${sw}"/>
+        <path d="M16 8v16M8 12l8 4 8-4M8 16l8 4 8-4" stroke="white" stroke-width="1" opacity="0.8"/>
+      </svg>`;
+    }
+
+    if (source === "training_event") {
+      const color = SOURCE_COLORS.training_event;
+      return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+        <rect x="4" y="6" width="24" height="20" rx="2" fill="${color}" stroke="white" stroke-width="${sw}"/>
+        <path d="M4 12h24M10 6v4M16 6v4M22 6v4" stroke="white" stroke-width="1"/>
+      </svg>`;
+    }
+
+    if (source === "marketplace_user") {
+      const color = USER_ROLE_COLORS[category] || SOURCE_COLORS.marketplace_user;
+      const role = (category || "").toLowerCase();
+      if (role.includes("farmer")) {
+        return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+          <path d="M16 6c-4 0-6 3-6 6v2h2l-2 8h4v-6h4v6h4l-2-8h2v-2c0-3-2-6-6-6z" fill="${color}" stroke="white" stroke-width="${sw}"/>
+          <ellipse cx="16" cy="10" rx="3" ry="2" fill="white" opacity="0.9"/>
+        </svg>`;
+      }
+      if (role.includes("veterinarian") || role.includes("vet")) {
+        return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+          <path d="M16 4l-4 8h3v10h2V12h2v10h2V12h3L16 4z" fill="${color}" stroke="white" stroke-width="${sw}"/>
+          <circle cx="16" cy="18" r="4" fill="white" opacity="0.9"/>
+        </svg>`;
+      }
+      if (role.includes("input") || role.includes("supplier")) {
+        return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+          <path d="M8 10h4v12H8zM14 8h4v14h-4zM20 12h4v10h-4z" fill="${color}" stroke="white" stroke-width="${sw}"/>
+        </svg>`;
+      }
+      if (role.includes("buyer")) {
+        return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+          <circle cx="16" cy="12" r="5" fill="${color}" stroke="white" stroke-width="${sw}"/>
+          <path d="M8 28l2-10h12l2 10" fill="${color}" stroke="white" stroke-width="${sw}"/>
+        </svg>`;
+      }
+      if (role.includes("consultant")) {
+        return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+          <circle cx="16" cy="10" r="6" fill="${color}" stroke="white" stroke-width="${sw}"/>
+          <path d="M8 28c0-4 3.5-8 8-8s8 4 8 8" fill="${color}" stroke="white" stroke-width="${sw}"/>
+        </svg>`;
+      }
+      return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+        <circle cx="16" cy="10" r="6" fill="${color}" stroke="white" stroke-width="${sw}"/>
+        <path d="M8 28c0-4 3.5-8 8-8s8 4 8 8" fill="${color}" stroke="white" stroke-width="${sw}"/>
+      </svg>`;
+    }
+
+    const c = SOURCE_COLORS[source] || "#666";
+    return `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">${ring}
+      <path d="M14 2C8.48 2 4 6.48 4 12c0 7 10 14 10 14s10-7 10-14c0-5.52-4.48-10-10-10z" fill="${c}" stroke="white" stroke-width="${sw}"/>
+      <circle cx="14" cy="12" r="4" fill="white"/>
+    </svg>`;
+  };
+
+  const createProjectMarkers = (items, isSearchResult = false) => {
+    return items
+      .filter((item) => {
+        if (item.longitude == null || item.latitude == null) return false;
+        const key = getVisibilityKey(item);
+        return visibleCategories[key] !== false;
+      })
+      .map((item) => {
+        const lon = parseFloat(item.longitude);
+        const lat = parseFloat(item.latitude);
+        if (isNaN(lon) || isNaN(lat)) return null;
 
         const feature = new Feature({
           geometry: new Point(fromLonLat([lon, lat])),
-          properties: {
-            ...project,
-            type: "charityProject",
-            isSearchResult: isSearchResult,
-          },
+          properties: { ...item, type: "mkProject", isSearchResult },
         });
-
-        // Get category specific marker
-        const markerSvg = getCategoryMarker(
-          project.category,
-          project.status,
-          isSearchResult
-        );
 
         feature.setStyle(
           new Style({
             image: new Icon({
               src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-                markerSvg
+                getMarkerSvg(item.source, item.category, isSearchResult)
               )}`,
               scale: 1,
-              anchor: [0.5, 0.5],
+              anchor: [0.5, 1],
             }),
           })
         );
         return feature;
       })
-      .filter((marker) => marker !== null);
+      .filter((m) => m !== null);
   };
 
   // Create user location marker
@@ -646,7 +699,7 @@ const CharityMap = () => {
     // Clear existing markers
     const existingFeatures = vectorSource.getFeatures();
     const projectFeatures = existingFeatures.filter(
-      (f) => f.get("properties")?.type === "charityProject"
+      (f) => f.get("properties")?.type === "mkProject"
     );
     const userLocationFeatures = existingFeatures.filter(
       (f) => f.get("properties")?.type === "userLocation"
@@ -661,7 +714,7 @@ const CharityMap = () => {
     } else if (searchResults.length > 0) {
       dataToShow = searchResults;
     } else {
-      dataToShow = charityProjects;
+      dataToShow = mkProjects;
     }
 
     // Add project markers
@@ -676,7 +729,7 @@ const CharityMap = () => {
       vectorSource.addFeature(userLocationMarker);
     }
   }, [
-    charityProjects,
+    mkProjects,
     searchResults,
     mapInitialized,
     visibleCategories,
@@ -711,140 +764,26 @@ const CharityMap = () => {
     setTabValue(newValue);
   };
 
-  // Project categories matching the API
-  const PROJECT_CATEGORIES = {
-    volunteer: { label: "Volunteer Opportunities", color: "#4caf50" },
-    education: { label: "Educational Support", color: "#2196f3" },
-    mental_health: { label: "Mental Health Services", color: "#e91e63" },
-    community: { label: "Community Programs", color: "#ff9800" },
-    donation: { label: "Donations & Support", color: "#9c27b0" },
-    partnership: { label: "Partnership Opportunities", color: "#00bcd4" },
-  };
-
-  // Project status colors
-  const STATUS_COLORS = {
-    pending: "#ff9800", // Orange
-    in_progress: "#4caf50", // Green
-    completed: "#2196f3", // Blue
-    on_hold: "#ff5722", // Deep Orange
-    cancelled: "#f44336", // Red
-  };
-
-  // Helper function to get status color
-  const getStatusColor = (status) => {
-    return STATUS_COLORS[status] || "#666";
-  };
-
-  // Helper function to get category marker
-  const getCategoryMarker = (
-    category,
-    status,
-    isSearchResult = false
-  ) => {
-    const statusColor = getStatusColor(status);
-    const scale = isSearchResult ? 1.5 : 1.2;
-    const strokeWidth = isSearchResult ? 3 : 2;
-    const outerRadius = isSearchResult ? 12 : 10;
-
-    let svgIcon = "";
-
-    switch (category) {
-      case "volunteer":
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="white"/>
-          </svg>
-        `;
-        break;
-      case "education":
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="white"/>
-          </svg>
-        `;
-        break;
-      case "donation":
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M20.5 4c-2.61 0.45-5.59 1.22-8 2.5-2.41-1.28-5.39-2.05-8-2.5v11.5c2.61 0.45 5.59 1.22 8 2.5 2.41-1.28 5.39-2.05 8-2.5V4zm-8 10.92c-1.87-0.73-3.96-1.18-6-1.36V5.64c2.04 0.18 4.13 0.63 6 1.36v7.92z" fill="white"/>
-          </svg>
-        `;
-        break;
-      case "mental_health":
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="white"/>
-          </svg>
-        `;
-        break;
-      case "community":
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" fill="white"/>
-          </svg>
-        `;
-        break;
-      case "partnership":
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.23-2.98 5.21-5.37C11.07 8.33 14.05 10 17.42 10c.78 0 1.53-.09 2.25-.26.21.71.33 1.47.33 2.26 0 4.41-3.59 8-8 8z" fill="white"/>
-          </svg>
-        `;
-        break;
-      default:
-        svgIcon = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="${outerRadius}" fill="${statusColor}" stroke="white" stroke-width="${strokeWidth}"/>
-            ${
-              isSearchResult
-                ? `<circle cx="12" cy="12" r="14" fill="none" stroke="#ff6b35" stroke-width="2" opacity="0.8"/>`
-                : ""
-            }
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="white"/>
-          </svg>
-        `;
-        break;
+  const getCategoryLabel = (key) => {
+    if (!key) return "";
+    if (key === "project") return "Projects";
+    if (key === "training_event") return "Events";
+    if (key.startsWith("marketplace_user:")) {
+      return `User: ${key.replace("marketplace_user:", "")}`;
     }
-
-    return svgIcon;
+    return key;
   };
 
+  const getCategoryColor = (key) => {
+    if (!key) return "#666";
+    if (key === "project" || key.startsWith("project:")) return SOURCE_COLORS.project;
+    if (key === "training_event" || key.startsWith("training_event:")) return SOURCE_COLORS.training_event;
+    if (key.startsWith("marketplace_user:")) {
+      const role = key.replace("marketplace_user:", "");
+      return USER_ROLE_COLORS[role] || SOURCE_COLORS.marketplace_user;
+    }
+    return "#666";
+  };
 
   // Handle category toggle
   const handleCategoryToggle = (category) => {
@@ -854,26 +793,19 @@ const CharityMap = () => {
     }));
   };
 
-  // Handle select all/deselect all
   const handleSelectAll = () => {
-    setVisibleCategories({
-      volunteer: true,
-      education: true,
-      mental_health: true,
-      community: true,
-      donation: true,
-      partnership: true,
+    setVisibleCategories((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((k) => (next[k] = true));
+      return next;
     });
   };
 
   const handleDeselectAll = () => {
-    setVisibleCategories({
-      volunteer: false,
-      education: false,
-      mental_health: false,
-      community: false,
-      donation: false,
-      partnership: false,
+    setVisibleCategories((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((k) => (next[k] = false));
+      return next;
     });
   };
 
@@ -907,29 +839,23 @@ const CharityMap = () => {
     }
   };
 
-  // Get category counts
   const getCategoryCounts = () => {
     const counts = {};
-    const categories = Object.keys(PROJECT_CATEGORIES);
-    let dataToCount;
+    let dataToCount =
+      nearMeMode && nearMeResults.length > 0
+        ? nearMeResults
+        : searchResults.length > 0
+          ? searchResults
+          : mkProjects;
 
-    if (nearMeMode && nearMeResults.length > 0) {
-      dataToCount = nearMeResults;
-    } else if (searchResults.length > 0) {
-      dataToCount = searchResults;
-    } else {
-      dataToCount = charityProjects;
-    }
-
-    categories.forEach((category) => {
-      counts[category] = dataToCount.filter(
-        (project) =>
-          project.category === category &&
-          project.longitude !== null &&
-          project.latitude !== null
+    Object.keys(visibleCategories).forEach((key) => {
+      counts[key] = dataToCount.filter(
+        (item) =>
+          getVisibilityKey(item) === key &&
+          item.longitude != null &&
+          item.latitude != null
       ).length;
     });
-
     return counts;
   };
 
@@ -947,7 +873,7 @@ const CharityMap = () => {
           border: "1px solid #e0e0e0",
         }}
       >
-        {/* Charity Projects Location Label and Near Me Controls */}
+        {/* MK Map Label and Near Me Controls */}
         <Box
           sx={{
             display: "flex",
@@ -964,7 +890,7 @@ const CharityMap = () => {
               fontSize: "1.1rem",
             }}
           >
-            Charity Projects Map
+            MK Map
           </Typography>
 
           {/* Near Me Controls */}
@@ -1094,7 +1020,7 @@ const CharityMap = () => {
             {/* Search Input */}
             <TextField
               size="small"
-              placeholder="Search by project name, category, county, target individual, or description..."
+              placeholder="Search by name, category, or location..."
               value={searchQuery}
               onChange={handleSearchChange}
               sx={{
@@ -1132,13 +1058,9 @@ const CharityMap = () => {
                 label="Search in"
               >
                 <MenuItem value="all">All Fields</MenuItem>
-                <MenuItem value="name">Project Name</MenuItem>
+                <MenuItem value="name">Name</MenuItem>
                 <MenuItem value="category">Category</MenuItem>
-                <MenuItem value="status">Status</MenuItem>
-                <MenuItem value="county">County</MenuItem>
-                <MenuItem value="subcounty">Subcounty</MenuItem>
-                <MenuItem value="target_individual">Target Individual</MenuItem>
-                <MenuItem value="description">Description</MenuItem>
+                <MenuItem value="location">Location</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -1371,7 +1293,7 @@ const CharityMap = () => {
           >
             <CircularProgress size={20} />
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Loading charity projects...
+              Loading...
             </Typography>
           </Box>
         )}
@@ -1434,7 +1356,7 @@ const CharityMap = () => {
           </IconButton>
         </Box>
 
-        {/* Compact Legend Box for charity projects with filtering */}
+        {/* Legend: MK map categories */}
         <Box
           sx={{
             position: "absolute",
@@ -1456,7 +1378,7 @@ const CharityMap = () => {
             variant="subtitle2"
             sx={{ fontWeight: "bold", mb: 0.5, fontSize: "13px" }}
           >
-            Legend
+            MK Map Legend
           </Typography>
 
           {/* Select All / Deselect All Buttons */}
@@ -1540,7 +1462,7 @@ const CharityMap = () => {
             </Box>
           )}
 
-          {/* Project Categories with Checkboxes */}
+          {/* MK map categories with checkboxes */}
           <Typography
             variant="body2"
             sx={{
@@ -1550,7 +1472,7 @@ const CharityMap = () => {
               color: "text.secondary",
             }}
           >
-            Project Categories
+            MK Categories
           </Typography>
           <Box
             sx={{ display: "flex", flexDirection: "column", gap: 0.25, mb: 1 }}
@@ -1572,11 +1494,9 @@ const CharityMap = () => {
                     size="small"
                     sx={{
                       padding: 0.1,
-                      "&.Mui-checked": {
-                        color: PROJECT_CATEGORIES[category]?.color,
-                      },
+                      "&.Mui-checked": { color: getCategoryColor(category) },
                       "&:hover": {
-                        backgroundColor: `${PROJECT_CATEGORIES[category]?.color}20`,
+                        backgroundColor: `${getCategoryColor(category)}20`,
                       },
                     }}
                   />
@@ -1585,39 +1505,29 @@ const CharityMap = () => {
                       width: 10,
                       height: 10,
                       borderRadius: "50%",
-                      backgroundColor: PROJECT_CATEGORIES[category]?.color,
+                      backgroundColor: getCategoryColor(category),
                       mr: 0.25,
                       transition: "all 0.2s ease-in-out",
                       opacity: isVisible ? 1 : 0.5,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "7px",
-                      color: "white",
-                      fontWeight: "bold",
                     }}
-                  >
-                    {category.charAt(0).toUpperCase()}
-                  </Box>
+                  />
                   <Typography
                     variant="body2"
                     sx={{
                       fontSize: "10px",
                       fontWeight: isVisible ? 600 : 400,
                       color: isVisible ? "text.primary" : "text.secondary",
-                      transition: "all 0.2s ease-in-out",
                       flexGrow: 1,
-                      textTransform: "capitalize",
                     }}
                   >
-                    {PROJECT_CATEGORIES[category]?.label || category.replace("_", " ")}
+                    {getCategoryLabel(category)}
                   </Typography>
                   <Typography
                     variant="caption"
                     sx={{
                       fontSize: "8px",
                       color: "text.secondary",
-                      backgroundColor: isVisible ? `${PROJECT_CATEGORIES[category]?.color}20` : "#f5f5f5",
+                      backgroundColor: isVisible ? `${getCategoryColor(category)}20` : "#f5f5f5",
                       px: 0.25,
                       py: 0.05,
                       borderRadius: 0.25,
@@ -1626,7 +1536,7 @@ const CharityMap = () => {
                       textAlign: "center",
                     }}
                   >
-                    {categoryCounts[category]}
+                    {categoryCounts[category] ?? 0}
                   </Typography>
                 </Box>
               )
@@ -1749,7 +1659,7 @@ const CharityMap = () => {
                   variant="h6"
                   sx={{ fontWeight: 600, fontSize: "1.1rem" }}
                 >
-                  Project Details
+                  Location Details
                 </Typography>
                 <IconButton
                   onClick={() => setDrawerOpen(false)}
@@ -1849,7 +1759,7 @@ const CharityMap = () => {
                             letterSpacing: 0.5,
                           }}
                         >
-                          Project Name
+                          Name
                         </Typography>
                         <Typography
                           variant="body1"
@@ -1878,7 +1788,7 @@ const CharityMap = () => {
                             letterSpacing: 0.5,
                           }}
                         >
-                          Status
+                          Type
                         </Typography>
                         <Box
                           sx={{
@@ -1887,22 +1797,27 @@ const CharityMap = () => {
                             px: 2,
                             py: 0.5,
                             borderRadius: 3,
-                            backgroundColor: `${getStatusColor(
-                              selectedProjectDetails.status
+                            backgroundColor: `${getCategoryColor(
+                              selectedProjectDetails.source
+                                ? `${selectedProjectDetails.source}:${selectedProjectDetails.category}`
+                                : ""
                             )}20`,
-                            color: getStatusColor(
-                              selectedProjectDetails.status
+                            color: getCategoryColor(
+                              selectedProjectDetails.source
+                                ? `${selectedProjectDetails.source}:${selectedProjectDetails.category}`
+                                : ""
                             ),
                             fontWeight: 600,
                             fontSize: "0.85rem",
                           }}
                         >
-                          {selectedProjectDetails.status
-                            .charAt(0)
-                            .toUpperCase() +
-                            selectedProjectDetails.status
-                              .slice(1)
-                              .replace("_", " ")}
+                          {selectedProjectDetails.source === "project"
+                            ? "Project"
+                            : selectedProjectDetails.source === "training_event"
+                              ? "Training / Event"
+                              : selectedProjectDetails.source === "marketplace_user"
+                                ? "Marketplace User"
+                                : selectedProjectDetails.source || "-"}
                         </Box>
                       </Box>
 
@@ -1934,45 +1849,22 @@ const CharityMap = () => {
                             px: 2,
                             py: 0.5,
                             borderRadius: 3,
-                            backgroundColor: `${PROJECT_CATEGORIES[selectedProjectDetails.category]?.color}20`,
-                            color: PROJECT_CATEGORIES[selectedProjectDetails.category]?.color,
+                            backgroundColor: `${getCategoryColor(
+                              selectedProjectDetails.source
+                                ? `${selectedProjectDetails.source}:${selectedProjectDetails.category}`
+                                : ""
+                            )}20`,
+                            color: getCategoryColor(
+                              selectedProjectDetails.source
+                                ? `${selectedProjectDetails.source}:${selectedProjectDetails.category}`
+                                : ""
+                            ),
                             fontWeight: 600,
                             fontSize: "0.85rem",
                           }}
                         >
-                          {PROJECT_CATEGORIES[selectedProjectDetails.category]?.label || 
-                           selectedProjectDetails.category?.charAt(0).toUpperCase() + 
-                           selectedProjectDetails.category?.slice(1) || "-"}
+                          {selectedProjectDetails.category || "-"}
                         </Box>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: "white",
-                          borderRadius: 2,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            color: "text.secondary",
-                            mb: 1,
-                            fontSize: "0.8rem",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Target Individual
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontWeight: 500, color: "text.primary" }}
-                        >
-                          {selectedProjectDetails.target_individual || "-"}
-                        </Typography>
                       </Box>
 
                       <Box
@@ -2071,100 +1963,13 @@ const CharityMap = () => {
                             letterSpacing: 0.5,
                           }}
                         >
-                          County
+                          Location
                         </Typography>
                         <Typography
                           variant="body1"
                           sx={{ fontWeight: 500, color: "text.primary" }}
                         >
-                          {selectedProjectDetails.county || "-"}
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: "white",
-                          borderRadius: 2,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            color: "text.secondary",
-                            mb: 1,
-                            fontSize: "0.8rem",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Subcounty
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontWeight: 500, color: "text.primary" }}
-                        >
-                          {selectedProjectDetails.subcounty || "-"}
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: "white",
-                          borderRadius: 2,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            color: "text.secondary",
-                            mb: 1,
-                            fontSize: "0.8rem",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Progress
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontWeight: 500, color: "text.primary" }}
-                        >
-                          {selectedProjectDetails.progress || 0}%
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: "white",
-                          borderRadius: 2,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            color: "text.secondary",
-                            mb: 1,
-                            fontSize: "0.8rem",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Assigned To
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontWeight: 500, color: "text.primary" }}
-                        >
-                          {selectedProjectDetails.assignee?.full_name || "Not Assigned"}
+                          {selectedProjectDetails.location || "-"}
                         </Typography>
                       </Box>
 

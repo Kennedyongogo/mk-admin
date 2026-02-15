@@ -1,6 +1,5 @@
 import React, { cloneElement, Fragment, useEffect, useState } from "react";
 import {
-  People,
   Logout,
   ExpandLess,
   ExpandMore,
@@ -212,7 +211,7 @@ const Navbar = (props) => {
               path: "/documents",
             },
             {
-              text: "Charity Map",
+              text: "MK Map",
               icon: <Map />,
               path: "/map",
             },
@@ -225,11 +224,6 @@ const Navbar = (props) => {
               text: "FAQs",
               icon: <QuestionAnswer />,
               path: "/faqs",
-            },
-            {
-              text: "Public Members",
-              icon: <People />,
-              path: "/public-members",
             },
           ],
         },

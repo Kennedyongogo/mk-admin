@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Typography, Card, Stack, Divider, Tabs, Tab } from "@mui/material";
 import { Storefront, People, School, Restaurant, Inventory } from "@mui/icons-material";
+import MarketplaceOverview from "../components/MarketplaceOverview/MarketplaceOverview";
 import MarketplaceUsers from "../components/MarketplaceUsers/MarketplaceUsers";
 import MarketplaceListings from "../components/MarketplaceListings/MarketplaceListings";
 import TrainingOpportunities from "../components/TrainingOpportunities/TrainingOpportunities";
@@ -42,11 +43,7 @@ export default function Marketplace() {
           <Tab label={<TabLabel icon={<School fontSize="small" />} label="Training & Opportunities" />} />
         </Tabs>
 
-        {tab === 0 && (
-          <Typography variant="body1" color="text.secondary">
-            Marketplace administration. Use the Users tab to view and manage marketplace (agribusiness) users. Use Listings to approve or reject seller listings. Use Feed Formulation Requests to act on custom feed requests from Inputs &amp; Feeds.
-          </Typography>
-        )}
+        {tab === 0 && <MarketplaceOverview />}
 
         {tab === 1 && <MarketplaceUsers />}
         {tab === 2 && <MarketplaceListings />}

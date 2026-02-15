@@ -401,7 +401,12 @@ const MarketplaceListings = () => {
               {selectedListing.imageUrl && (
                 <Box>
                   <Typography variant="caption" color="text.secondary">Image</Typography>
-                  <Box component="img" src={selectedListing.imageUrl} alt="" sx={{ maxWidth: "100%", maxHeight: 200, borderRadius: 1, mt: 0.5 }} />
+                  <Box
+                    component="img"
+                    src={selectedListing.imageUrl.startsWith("http") ? selectedListing.imageUrl : `/${selectedListing.imageUrl}`}
+                    alt=""
+                    sx={{ maxWidth: "100%", maxHeight: 200, borderRadius: 1, mt: 0.5 }}
+                  />
                 </Box>
               )}
               {selectedListing.status === "rejected" && selectedListing.rejectedReason && (

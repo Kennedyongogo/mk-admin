@@ -79,6 +79,13 @@ import {
   Favorite as FavoriteIcon,
   List as ListIcon,
   Schedule as ScheduleIcon,
+  History as HistoryIcon,
+  Build as BuildIcon,
+  Business as BusinessIcon,
+  QuestionAnswer as QuestionAnswerIcon,
+  ContactMail as ContactMailIcon,
+  RequestQuote as RequestQuoteIcon,
+  Email as EmailIcon,
 } from "@mui/icons-material";
 
 // Color palette for charts (brown/rust theme)
@@ -119,6 +126,7 @@ const Analytics = () => {
     formSubmissions: {},
     trends: {},
   });
+  const [dashboardStats, setDashboardStats] = useState(null);
   // Helper function to format date for display
   const formatDateForDisplay = (dateString) => {
     const date = new Date(dateString);
@@ -141,9 +149,6 @@ const Analytics = () => {
   const [overviewHelpOpen, setOverviewHelpOpen] = useState(false);
   const [reviewsHelpOpen, setReviewsHelpOpen] = useState(false);
   const [blogsHelpOpen, setBlogsHelpOpen] = useState(false);
-  const [membersHelpOpen, setMembersHelpOpen] = useState(false);
-  const [lodgesHelpOpen, setLodgesHelpOpen] = useState(false);
-  const [destinationsHelpOpen, setDestinationsHelpOpen] = useState(false);
   const [galleryHelpOpen, setGalleryHelpOpen] = useState(false);
   const [formsHelpOpen, setFormsHelpOpen] = useState(false);
 
@@ -151,11 +156,8 @@ const Analytics = () => {
     { label: "Overview", icon: <AnalyticsIcon />, value: 0 },
     { label: "Reviews", icon: <StarIcon />, value: 1 },
     { label: "Blogs", icon: <ArticleIcon />, value: 2 },
-    { label: "Agent Partnership", icon: <PeopleIcon />, value: 3 },
-    { label: "Lodges & Packages", icon: <HotelIcon />, value: 4 },
-    { label: "Destinations & Routes", icon: <LocationIcon />, value: 5 },
-    { label: "Gallery", icon: <PhotoLibraryIcon />, value: 6 },
-    { label: "Forms", icon: <AssignmentIcon />, value: 7 },
+    { label: "Gallery", icon: <PhotoLibraryIcon />, value: 3 },
+    { label: "Forms", icon: <AssignmentIcon />, value: 4 },
   ];
 
   useEffect(() => {
@@ -172,27 +174,40 @@ const Analytics = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch("/api/analytics", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const [analyticsRes, dashboardRes] = await Promise.all([
+        fetch("/api/analytics", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch("/api/admin-users/dashboard/stats", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!analyticsRes.ok) {
+        throw new Error(`HTTP error! status: ${analyticsRes.status}`);
       }
 
-      const data = await response.json();
-      console.log("Analytics API Response:", data); // Debug log
-
+      const data = await analyticsRes.json();
       if (data.success) {
         setAnalyticsData(data.data);
         setDataLoaded(true);
-        console.log("Analytics data set:", data.data); // Debug log
       } else {
         throw new Error(data.message || "Failed to fetch analytics data");
+      }
+
+      if (dashboardRes.ok) {
+        const dashboardData = await dashboardRes.json();
+        if (dashboardData.success && dashboardData.data?.stats) {
+          setDashboardStats(dashboardData.data.stats);
+        }
       }
     } catch (err) {
       console.error("Error fetching analytics data:", err);
@@ -215,14 +230,13 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <InfoIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Overview Data Explanation
+            Platform Overview – Data Explanation
           </Typography>
         </Box>
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          This overview provides comprehensive insights about Akira Safaris' activities, 
-          including reviews, blogs, agent partnerships, lodges, packages, destinations, gallery, forms, documents, users, and system activity. Here's what each section means:
+          This overview shows platform-wide counts (excluding marketplace). It includes admin users, content, inquiries, forms, and system activity. Marketplace stats (users, listings, training, grants, etc.) are on the Marketplace page.
         </Typography>
 
         {/* Key Metrics Cards */}
@@ -235,8 +249,8 @@ const Analytics = () => {
               <PeopleIcon color="warning" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Users"
-              secondary="The total number of admin users in the system"
+              primary="Admin Users"
+              secondary="Total number of admin users in the system"
             />
           </ListItem>
           <ListItem>
@@ -244,8 +258,8 @@ const Analytics = () => {
               <AccountCircleIcon color="info" />
             </ListItemIcon>
             <ListItemText
-              primary="Active Users"
-              secondary="The number of currently active users in the system"
+              primary="Active Admins"
+              secondary="Number of admins currently active"
             />
           </ListItem>
           <ListItem>
@@ -253,8 +267,17 @@ const Analytics = () => {
               <DescriptionIcon color="success" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Documents"
-              secondary="The total number of documents stored in the system"
+              primary="Documents"
+              secondary="Total documents stored in the system"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <HistoryIcon color="action" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Audit Logs"
+              secondary="Total audit trail entries (system activity log)"
             />
           </ListItem>
           <ListItem>
@@ -262,8 +285,8 @@ const Analytics = () => {
               <StarIcon color="warning" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Reviews"
-              secondary="The total number of customer reviews in the system"
+              primary="Reviews"
+              secondary="Total customer or testimonial reviews"
             />
           </ListItem>
           <ListItem>
@@ -271,8 +294,8 @@ const Analytics = () => {
               <ArticleIcon color="primary" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Blogs"
-              secondary="The total number of blog posts published"
+              primary="Blogs"
+              secondary="Total blog posts published"
             />
           </ListItem>
           <ListItem>
@@ -280,35 +303,71 @@ const Analytics = () => {
               <PeopleIcon color="secondary" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Agent Partnerships"
-              secondary="The total number of agent partnership applications"
+              primary="Members"
+              secondary="Total member or agent partnership applications"
             />
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              <HotelIcon color="error" />
+              <BuildIcon color="inherit" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Lodges"
-              secondary="The total number of lodges in the system"
+              primary="Services"
+              secondary="Total services offered on the platform"
             />
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              <ShoppingBagIcon color="info" />
+              <BusinessIcon color="inherit" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Packages"
-              secondary="The total number of tour packages available"
+              primary="Projects"
+              secondary="Total projects in the system"
             />
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              <LocationIcon color="success" />
+              <QuestionAnswerIcon color="inherit" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Destinations"
-              secondary="The total number of destinations offered"
+              primary="FAQs"
+              secondary="Total frequently asked questions"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <ContactMailIcon color="inherit" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Contacts"
+              secondary="Total contact form submissions"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <RequestQuoteIcon color="inherit" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Quote Requests"
+              secondary="Total quote request submissions"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <ScheduleIcon color="inherit" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Consultations"
+              secondary="Total consultation requests"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <EmailIcon color="inherit" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Newsletter Subscribers"
+              secondary="Total newsletter sign-ups"
             />
           </ListItem>
           <ListItem>
@@ -316,8 +375,8 @@ const Analytics = () => {
               <PhotoLibraryIcon color="secondary" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Gallery Items"
-              secondary="The total number of images and videos in the gallery"
+              primary="Interest Gallery"
+              secondary="Total gallery items (images/videos)"
             />
           </ListItem>
           <ListItem>
@@ -325,8 +384,17 @@ const Analytics = () => {
               <AssignmentIcon color="warning" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Forms"
-              secondary="The total number of forms created in the system"
+              primary="Forms"
+              secondary="Total forms created in the system"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Form Submissions"
+              secondary="Total form submissions received"
             />
           </ListItem>
         </List>
@@ -433,11 +501,11 @@ const Analytics = () => {
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              <Chip label="New Gallery Items" color="info" size="small" />
+              <Chip label="New Interest Gallery Items" color="info" size="small" />
             </ListItemIcon>
             <ListItemText
-              primary="New Gallery Items"
-              secondary="Number of new images and videos added in the last 30 days"
+              primary="New Interest Gallery Items"
+              secondary="Number of new gallery items added in the last 30 days"
             />
           </ListItem>
           <ListItem>
@@ -453,9 +521,7 @@ const Analytics = () => {
 
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>💡 Tip:</strong> These metrics help you understand Akira Safaris' 
-            performance, track engagement, monitor content creation, and identify areas 
-            needing attention. Use the trends to spot patterns and make data-driven decisions.
+            <strong>💡 Tip:</strong> These metrics cover the main platform (no marketplace). Use them to track content, inquiries, and system activity. For marketplace stats (users, listings, training, grants), open the Marketplace section.
           </Typography>
         </Alert>
       </DialogContent>
@@ -479,7 +545,7 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <StarIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Reviews Analytics Explanation
+            Reviews Analytics Explanation
           </Typography>
         </Box>
       </DialogTitle>
@@ -558,7 +624,7 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <ArticleIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Blogs Analytics Explanation
+            Blogs Analytics Explanation
           </Typography>
         </Box>
       </DialogTitle>
@@ -625,222 +691,6 @@ const Analytics = () => {
     </Dialog>
   );
 
-  // Agent Partnership Help Dialog Component
-  const AgentPartnershipHelpDialog = () => (
-    <Dialog
-      open={membersHelpOpen}
-      onClose={() => setMembersHelpOpen(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <PeopleIcon color="primary" />
-          <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Agent Partnership Analytics Explanation
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Agent Partnership tab provides insights into agent partnership applications, status distribution, and business types.
-        </Typography>
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Application Metrics
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon><PeopleIcon color="secondary" /></ListItemIcon>
-            <ListItemText
-              primary="Total Applications"
-              secondary="The total number of agent partnership applications received"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><ScheduleIcon color="warning" /></ListItemIcon>
-            <ListItemText
-              primary="Pending"
-              secondary="Number of applications awaiting review"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><TrendingUpIcon color="primary" /></ListItemIcon>
-            <ListItemText
-              primary="Recent (30d)"
-              secondary="Number of new applications received in the last 30 days"
-            />
-          </ListItem>
-        </List>
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📈 Charts
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon><PieChartIcon color="primary" /></ListItemIcon>
-            <ListItemText
-              primary="Application Status Distribution"
-              secondary="Pie chart showing applications by status (Pending, Approved, Rejected)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><BarChartIcon color="secondary" /></ListItemIcon>
-            <ListItemText
-              primary="Business Type Distribution"
-              secondary="Bar chart showing number of applications by business type"
-            />
-          </ListItem>
-        </List>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setMembersHelpOpen(false)} color="primary">Got it!</Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // Lodges & Packages Help Dialog Component
-  const LodgesPackagesHelpDialog = () => (
-    <Dialog
-      open={lodgesHelpOpen}
-      onClose={() => setLodgesHelpOpen(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <HotelIcon color="primary" />
-          <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Lodges & Packages Analytics Explanation
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Lodges & Packages tab provides insights into lodges, tour packages, destinations, and package types.
-        </Typography>
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Metrics
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon><HotelIcon color="error" /></ListItemIcon>
-            <ListItemText
-              primary="Total Lodges"
-              secondary="The total number of lodges in the system"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><ShoppingBagIcon color="info" /></ListItemIcon>
-            <ListItemText
-              primary="Total Packages"
-              secondary="The total number of tour packages available"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
-            <ListItemText
-              primary="Active Packages"
-              secondary="Number of packages currently active and available for booking"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><StarIcon color="warning" /></ListItemIcon>
-            <ListItemText
-              primary="Average Rating"
-              secondary="Average rating across all packages"
-            />
-          </ListItem>
-        </List>
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📈 Charts
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon><BarChartIcon color="primary" /></ListItemIcon>
-            <ListItemText
-              primary="Lodges by Destination"
-              secondary="Bar chart showing distribution of lodges by destination"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><PieChartIcon color="secondary" /></ListItemIcon>
-            <ListItemText
-              primary="Packages by Type"
-              secondary="Pie chart showing distribution of packages by type (All-inclusive, etc.)"
-            />
-          </ListItem>
-        </List>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setLodgesHelpOpen(false)} color="primary">Got it!</Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // Destinations & Routes Help Dialog Component
-  const DestinationsRoutesHelpDialog = () => (
-    <Dialog
-      open={destinationsHelpOpen}
-      onClose={() => setDestinationsHelpOpen(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <LocationIcon color="primary" />
-          <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Destinations & Routes Analytics Explanation
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Destinations & Routes tab provides insights into destinations, locations, and route stages.
-        </Typography>
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Metrics
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon><LocationIcon color="success" /></ListItemIcon>
-            <ListItemText
-              primary="Total Destinations"
-              secondary="The total number of destinations offered"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
-            <ListItemText
-              primary="Active Destinations"
-              secondary="Number of destinations currently active"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><MapIcon color="primary" /></ListItemIcon>
-            <ListItemText
-              primary="Total Route Stages"
-              secondary="The total number of route stages in the system"
-            />
-          </ListItem>
-        </List>
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📈 Charts
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon><BarChartIcon color="primary" /></ListItemIcon>
-            <ListItemText
-              primary="Destinations by Location"
-              secondary="Bar chart showing distribution of destinations by location (East Africa, etc.)"
-            />
-          </ListItem>
-        </List>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setDestinationsHelpOpen(false)} color="primary">Got it!</Button>
-      </DialogActions>
-    </Dialog>
-  );
-
   // Gallery Help Dialog Component
   const GalleryHelpDialog = () => (
     <Dialog
@@ -853,7 +703,7 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <PhotoLibraryIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Gallery Analytics Explanation
+            Gallery Analytics Explanation
           </Typography>
         </Box>
       </DialogTitle>
@@ -932,7 +782,7 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <AssignmentIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Forms Analytics Explanation
+            Forms Analytics Explanation
           </Typography>
         </Box>
       </DialogTitle>
@@ -1011,7 +861,7 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <MapIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Projects Data Explanation
+            Projects Data Explanation
           </Typography>
         </Box>
       </DialogTitle>
@@ -1290,7 +1140,7 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <BarChartIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Akira Safaris - Inquiries Data Explanation
+            Inquiries Data Explanation
           </Typography>
         </Box>
       </DialogTitle>
@@ -2298,7 +2148,7 @@ const Analytics = () => {
   const CardItem = (props) => {
     const getCardStyle = (title) => {
       switch (title) {
-        case "Total Users":
+        case "Admin Users":
           return {
             icon: <PeopleIcon sx={{ fontSize: 40, color: "#f57c00" }} />,
             bgColor: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)",
@@ -2306,23 +2156,31 @@ const Analytics = () => {
             textColor: "#f57c00",
             iconBg: "rgba(245, 124, 0, 0.1)",
           };
-        case "Active Users":
+        case "Active Admins":
           return {
-            icon: <PeopleIcon sx={{ fontSize: 40, color: "#2e7d32" }} />,
+            icon: <AccountCircleIcon sx={{ fontSize: 40, color: "#2e7d32" }} />,
             bgColor: "linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)",
             borderColor: "#2e7d32",
             textColor: "#2e7d32",
             iconBg: "rgba(46, 125, 50, 0.1)",
           };
-        case "Total Documents":
+        case "Documents":
           return {
-            icon: <AssessmentIcon sx={{ fontSize: 40, color: "#388e3c" }} />,
+            icon: <DescriptionIcon sx={{ fontSize: 40, color: "#388e3c" }} />,
             bgColor: "linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)",
             borderColor: "#388e3c",
             textColor: "#388e3c",
             iconBg: "rgba(56, 142, 60, 0.1)",
           };
-        case "Total Reviews":
+        case "Audit Logs":
+          return {
+            icon: <HistoryIcon sx={{ fontSize: 40, color: "#546e7a" }} />,
+            bgColor: "linear-gradient(135deg, #ECEFF1 0%, #CFD8DC 100%)",
+            borderColor: "#546e7a",
+            textColor: "#546e7a",
+            iconBg: "rgba(84, 110, 122, 0.1)",
+          };
+        case "Reviews":
           return {
             icon: <StarIcon sx={{ fontSize: 40, color: "#ff9800" }} />,
             bgColor: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)",
@@ -2330,15 +2188,15 @@ const Analytics = () => {
             textColor: "#ff9800",
             iconBg: "rgba(255, 152, 0, 0.1)",
           };
-        case "Total Blogs":
+        case "Blogs":
           return {
-            icon: <ArticleIcon sx={{ fontSize: 40, color: "#B85C38" }} />,
+            icon: <ArticleIcon sx={{ fontSize: 40, color: "#1976d2" }} />,
             bgColor: "linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)",
             borderColor: "#1976d2",
             textColor: "#1976d2",
             iconBg: "rgba(25, 118, 210, 0.1)",
           };
-        case "Total Agent Partnerships":
+        case "Members":
           return {
             icon: <PeopleIcon sx={{ fontSize: 40, color: "#7b1fa2" }} />,
             bgColor: "linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)",
@@ -2346,31 +2204,63 @@ const Analytics = () => {
             textColor: "#7b1fa2",
             iconBg: "rgba(123, 31, 162, 0.1)",
           };
-        case "Total Lodges":
+        case "Services":
           return {
-            icon: <HotelIcon sx={{ fontSize: 40, color: "#d32f2f" }} />,
-            bgColor: "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)",
-            borderColor: "#d32f2f",
-            textColor: "#d32f2f",
-            iconBg: "rgba(211, 47, 47, 0.1)",
+            icon: <BuildIcon sx={{ fontSize: 40, color: "#00897b" }} />,
+            bgColor: "linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%)",
+            borderColor: "#00897b",
+            textColor: "#00897b",
+            iconBg: "rgba(0, 137, 123, 0.1)",
           };
-        case "Total Packages":
+        case "Projects":
           return {
-            icon: <ShoppingBagIcon sx={{ fontSize: 40, color: "#0288d1" }} />,
-            bgColor: "linear-gradient(135deg, #E1F5FE 0%, #B3E5FC 100%)",
-            borderColor: "#0288d1",
-            textColor: "#0288d1",
-            iconBg: "rgba(2, 136, 209, 0.1)",
+            icon: <BusinessIcon sx={{ fontSize: 40, color: "#6B4E3D" }} />,
+            bgColor: "linear-gradient(135deg, #EFEBE9 0%, #D7CCC8 100%)",
+            borderColor: "#6B4E3D",
+            textColor: "#6B4E3D",
+            iconBg: "rgba(107, 78, 61, 0.1)",
           };
-        case "Total Destinations":
+        case "FAQs":
           return {
-            icon: <LocationIcon sx={{ fontSize: 40, color: "#388e3c" }} />,
-            bgColor: "linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)",
-            borderColor: "#388e3c",
-            textColor: "#388e3c",
-            iconBg: "rgba(56, 142, 60, 0.1)",
+            icon: <QuestionAnswerIcon sx={{ fontSize: 40, color: "#3949ab" }} />,
+            bgColor: "linear-gradient(135deg, #E8EAF6 0%, #C5CAE9 100%)",
+            borderColor: "#3949ab",
+            textColor: "#3949ab",
+            iconBg: "rgba(57, 73, 171, 0.1)",
           };
-        case "Total Gallery Items":
+        case "Contacts":
+          return {
+            icon: <ContactMailIcon sx={{ fontSize: 40, color: "#1565c0" }} />,
+            bgColor: "linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)",
+            borderColor: "#1565c0",
+            textColor: "#1565c0",
+            iconBg: "rgba(21, 101, 192, 0.1)",
+          };
+        case "Quote Requests":
+          return {
+            icon: <RequestQuoteIcon sx={{ fontSize: 40, color: "#0097a7" }} />,
+            bgColor: "linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)",
+            borderColor: "#0097a7",
+            textColor: "#0097a7",
+            iconBg: "rgba(0, 151, 167, 0.1)",
+          };
+        case "Consultations":
+          return {
+            icon: <ScheduleIcon sx={{ fontSize: 40, color: "#e65100" }} />,
+            bgColor: "linear-gradient(135deg, #FBE9E7 0%, #FFCCBC 100%)",
+            borderColor: "#e65100",
+            textColor: "#e65100",
+            iconBg: "rgba(230, 81, 0, 0.1)",
+          };
+        case "Newsletter Subscribers":
+          return {
+            icon: <EmailIcon sx={{ fontSize: 40, color: "#c2185b" }} />,
+            bgColor: "linear-gradient(135deg, #FCE4EC 0%, #F8BBD9 100%)",
+            borderColor: "#c2185b",
+            textColor: "#c2185b",
+            iconBg: "rgba(194, 24, 91, 0.1)",
+          };
+        case "Interest Gallery":
           return {
             icon: <PhotoLibraryIcon sx={{ fontSize: 40, color: "#7b1fa2" }} />,
             bgColor: "linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)",
@@ -2378,13 +2268,21 @@ const Analytics = () => {
             textColor: "#7b1fa2",
             iconBg: "rgba(123, 31, 162, 0.1)",
           };
-        case "Total Forms":
+        case "Forms":
           return {
             icon: <AssignmentIcon sx={{ fontSize: 40, color: "#f57c00" }} />,
             bgColor: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)",
             borderColor: "#f57c00",
             textColor: "#f57c00",
             iconBg: "rgba(245, 124, 0, 0.1)",
+          };
+        case "Form Submissions":
+          return {
+            icon: <CheckCircleIcon sx={{ fontSize: 40, color: "#43a047" }} />,
+            bgColor: "linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)",
+            borderColor: "#43a047",
+            textColor: "#43a047",
+            iconBg: "rgba(67, 160, 71, 0.1)",
           };
         default:
           return {
@@ -2507,7 +2405,7 @@ const Analytics = () => {
         sx={{ mb: 3 }}
       >
         <Typography variant="h5" fontWeight="bold" color="text.primary">
-          System Overview
+          MK Consultancy Dashboard
         </Typography>
         <IconButton
           onClick={() => setOverviewHelpOpen(true)}
@@ -2543,53 +2441,77 @@ const Analytics = () => {
       )}
 
       {/* Data Content */}
-      {dataLoaded && (
+      {(dataLoaded || dashboardStats) && (
         <>
-          {/* Key Metrics Cards */}
+          {/* Key Metrics Cards (from dashboard stats - excludes marketplace) */}
           <Grid container spacing={3}>
             <CardItem
-              title="Total Users"
-              value={analyticsData.overview?.totalUsers || 0}
+              title="Admin Users"
+              value={dashboardStats?.totalAdmins ?? analyticsData.overview?.totalUsers ?? 0}
             />
             <CardItem
-              title="Active Users"
-              value={analyticsData.overview?.activeUsers || 0}
+              title="Active Admins"
+              value={dashboardStats?.activeAdmins ?? analyticsData.overview?.activeUsers ?? 0}
             />
             <CardItem
-              title="Total Documents"
-              value={analyticsData.overview?.totalDocuments || 0}
+              title="Documents"
+              value={dashboardStats?.totalDocuments ?? analyticsData.overview?.totalDocuments ?? 0}
             />
             <CardItem
-              title="Total Reviews"
-              value={analyticsData.overview?.totalReviews || 0}
+              title="Audit Logs"
+              value={dashboardStats?.totalAuditLogs ?? 0}
             />
             <CardItem
-              title="Total Blogs"
-              value={analyticsData.overview?.totalBlogs || 0}
+              title="Reviews"
+              value={dashboardStats?.totalReviews ?? analyticsData.overview?.totalReviews ?? 0}
             />
             <CardItem
-              title="Total Agent Partnerships"
-              value={analyticsData.overview?.totalMembers || 0}
+              title="Blogs"
+              value={dashboardStats?.totalBlogs ?? analyticsData.overview?.totalBlogs ?? 0}
             />
             <CardItem
-              title="Total Lodges"
-              value={analyticsData.overview?.totalLodges || 0}
+              title="Members"
+              value={dashboardStats?.totalMembers ?? analyticsData.overview?.totalMembers ?? 0}
             />
             <CardItem
-              title="Total Packages"
-              value={analyticsData.overview?.totalPackages || 0}
+              title="Services"
+              value={dashboardStats?.totalServices ?? 0}
             />
             <CardItem
-              title="Total Destinations"
-              value={analyticsData.overview?.totalDestinations || 0}
+              title="Projects"
+              value={dashboardStats?.totalProjects ?? 0}
             />
             <CardItem
-              title="Total Gallery Items"
-              value={analyticsData.overview?.totalGalleryItems || 0}
+              title="FAQs"
+              value={dashboardStats?.totalFaqs ?? 0}
             />
             <CardItem
-              title="Total Forms"
-              value={analyticsData.overview?.totalForms || 0}
+              title="Contacts"
+              value={dashboardStats?.totalContacts ?? 0}
+            />
+            <CardItem
+              title="Quote Requests"
+              value={dashboardStats?.totalQuoteRequests ?? 0}
+            />
+            <CardItem
+              title="Consultations"
+              value={dashboardStats?.totalConsultations ?? 0}
+            />
+            <CardItem
+              title="Newsletter Subscribers"
+              value={dashboardStats?.totalNewsletterSubscribers ?? 0}
+            />
+            <CardItem
+              title="Interest Gallery"
+              value={dashboardStats?.totalInterestGallery ?? 0}
+            />
+            <CardItem
+              title="Forms"
+              value={dashboardStats?.totalForms ?? analyticsData.overview?.totalForms ?? 0}
+            />
+            <CardItem
+              title="Form Submissions"
+              value={dashboardStats?.totalFormSubmissions ?? analyticsData.overview?.totalSubmissions ?? 0}
             />
           </Grid>
 
@@ -4908,293 +4830,6 @@ const Analytics = () => {
     </Box>
   );
 
-  // Render function for Agent Partnership tab
-  const renderMembers = () => (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
-        <Box>
-          <Typography variant="h6" fontWeight="600" color="text.primary">Agent Partnership Analytics</Typography>
-          <Typography variant="body2" color="text.secondary">Agent partnership applications and business type distribution</Typography>
-        </Box>
-        <IconButton onClick={() => setMembersHelpOpen(true)} color="primary" sx={{ backgroundColor: "rgba(184, 92, 56, 0.1)", "&:hover": { backgroundColor: "rgba(184, 92, 56, 0.2)" } }} title="Click to understand the data shown here">
-          <HelpIcon />
-        </IconButton>
-      </Box>
-      {loading && !dataLoaded && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mb={3}>
-          <Box textAlign="center">
-            <CircularProgress size={40} sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">Loading agent partnership data...</Typography>
-          </Box>
-        </Box>
-      )}
-      {dataLoaded && (
-        <>
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(123, 31, 162, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.members?.total || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Applications</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #f57c00 0%, #e65100 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(245, 124, 0, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.members?.byStatus?.find(s => s.status === 'Pending')?.count || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Pending</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #43a047 0%, #388e3c 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(67, 160, 71, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.trends?.last30Days?.members || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Recent (30d)</Typography>
-              </Card>
-            </Grid>
-          </Grid>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Typography variant="h6" gutterBottom fontWeight="600">Application Status Distribution</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  {(analyticsData.members?.byStatus || []).length > 0 ? (
-                    <PieChart>
-                      <Pie data={(analyticsData.members?.byStatus || []).map(item => ({ name: item.status, value: parseInt(item.count) || 0 }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="90%" innerRadius="50%" fill="#8884d8">
-                        {(analyticsData.members?.byStatus || []).map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [value, "Applications"]} />
-                      <Legend />
-                    </PieChart>
-                  ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                      <Typography variant="body2" color="text.secondary">No application status data available</Typography>
-                    </Box>
-                  )}
-                </ResponsiveContainer>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Typography variant="h6" gutterBottom fontWeight="600">Business Type Distribution</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  {(analyticsData.members?.byBusinessType || []).length > 0 ? (
-                    <BarChart data={(analyticsData.members?.byBusinessType || []).map(item => ({ name: item.business_type || 'N/A', count: parseInt(item.count) || 0 }))}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [value, "Applications"]} />
-                      <Bar dataKey="count" fill="#7b1fa2" />
-                    </BarChart>
-                  ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                      <Typography variant="body2" color="text.secondary">No business type data available</Typography>
-                    </Box>
-                  )}
-                </ResponsiveContainer>
-              </Card>
-            </Grid>
-          </Grid>
-        </>
-      )}
-      {!dataLoaded && !loading && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mb={3}>
-          <Box textAlign="center">
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>No agent partnership data available</Typography>
-            <Button variant="contained" onClick={fetchAnalyticsData} startIcon={<RefreshIcon />}>Load Data</Button>
-          </Box>
-        </Box>
-      )}
-    </Box>
-  );
-
-  // Render function for Lodges & Packages tab
-  const renderLodgesPackages = () => (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
-        <Box>
-          <Typography variant="h6" fontWeight="600" color="text.primary">Lodges & Packages Analytics</Typography>
-          <Typography variant="body2" color="text.secondary">Lodge and package distribution and metrics</Typography>
-        </Box>
-        <IconButton onClick={() => setLodgesHelpOpen(true)} color="primary" sx={{ backgroundColor: "rgba(184, 92, 56, 0.1)", "&:hover": { backgroundColor: "rgba(184, 92, 56, 0.2)" } }} title="Click to understand the data shown here">
-          <HelpIcon />
-        </IconButton>
-      </Box>
-      {loading && !dataLoaded && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mb={3}>
-          <Box textAlign="center">
-            <CircularProgress size={40} sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">Loading lodges & packages data...</Typography>
-          </Box>
-        </Box>
-      )}
-      {dataLoaded && (
-        <>
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(211, 47, 47, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.lodges?.total || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Lodges</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #0288d1 0%, #0277bd 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(2, 136, 209, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.packages?.total || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Packages</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #43a047 0%, #388e3c 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(67, 160, 71, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.packages?.active || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Active Packages</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(255, 152, 0, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.packages?.averageRating || "0.00"}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Rating</Typography>
-              </Card>
-            </Grid>
-          </Grid>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Typography variant="h6" gutterBottom fontWeight="600">Lodges by Destination</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  {(analyticsData.lodges?.byDestination || []).length > 0 ? (
-                    <BarChart data={(analyticsData.lodges?.byDestination || []).map(item => ({ name: item.destination || 'N/A', count: parseInt(item.count) || 0 }))}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [value, "Lodges"]} />
-                      <Bar dataKey="count" fill="#d32f2f" />
-                    </BarChart>
-                  ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                      <Typography variant="body2" color="text.secondary">No destination data available</Typography>
-                    </Box>
-                  )}
-                </ResponsiveContainer>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Typography variant="h6" gutterBottom fontWeight="600">Packages by Type</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  {(analyticsData.packages?.byType || []).length > 0 ? (
-                    <PieChart>
-                      <Pie data={(analyticsData.packages?.byType || []).map(item => ({ name: item.type || 'N/A', value: parseInt(item.count) || 0 }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="90%" innerRadius="50%" fill="#8884d8">
-                        {(analyticsData.packages?.byType || []).map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [value, "Packages"]} />
-                      <Legend />
-                    </PieChart>
-                  ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                      <Typography variant="body2" color="text.secondary">No package type data available</Typography>
-                    </Box>
-                  )}
-                </ResponsiveContainer>
-              </Card>
-            </Grid>
-          </Grid>
-        </>
-      )}
-      {!dataLoaded && !loading && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mb={3}>
-          <Box textAlign="center">
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>No lodges & packages data available</Typography>
-            <Button variant="contained" onClick={fetchAnalyticsData} startIcon={<RefreshIcon />}>Load Data</Button>
-          </Box>
-        </Box>
-      )}
-    </Box>
-  );
-
-  // Render function for Destinations & Routes tab
-  const renderDestinationsRoutes = () => (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
-        <Box>
-          <Typography variant="h6" fontWeight="600" color="text.primary">Destinations & Routes Analytics</Typography>
-          <Typography variant="body2" color="text.secondary">Destination and route stage distribution</Typography>
-        </Box>
-        <IconButton onClick={() => setDestinationsHelpOpen(true)} color="primary" sx={{ backgroundColor: "rgba(184, 92, 56, 0.1)", "&:hover": { backgroundColor: "rgba(184, 92, 56, 0.2)" } }} title="Click to understand the data shown here">
-          <HelpIcon />
-        </IconButton>
-      </Box>
-      {loading && !dataLoaded && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mb={3}>
-          <Box textAlign="center">
-            <CircularProgress size={40} sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">Loading destinations & routes data...</Typography>
-          </Box>
-        </Box>
-      )}
-      {dataLoaded && (
-        <>
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(56, 142, 60, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.destinations?.total || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Destinations</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #43a047 0%, #388e3c 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(67, 160, 71, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.destinations?.active || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Active Destinations</Typography>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ p: 3, textAlign: "center", background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%)', color: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(123, 31, 162, 0.3)' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>{analyticsData.routeStages?.total || 0}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Route Stages</Typography>
-              </Card>
-            </Grid>
-          </Grid>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Typography variant="h6" gutterBottom fontWeight="600">Destinations by Location</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  {(analyticsData.destinations?.byLocation || []).length > 0 ? (
-                    <BarChart data={(analyticsData.destinations?.byLocation || []).map(item => ({ name: item.location || 'N/A', count: parseInt(item.count) || 0 }))}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [value, "Destinations"]} />
-                      <Bar dataKey="count" fill="#388e3c" />
-                    </BarChart>
-                  ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                      <Typography variant="body2" color="text.secondary">No location data available</Typography>
-                    </Box>
-                  )}
-                </ResponsiveContainer>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Typography variant="h6" gutterBottom fontWeight="600">Route Stages Overview</Typography>
-                <Box sx={{ p: 3, height: 300, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                  <Typography variant="h3" fontWeight="bold" color="primary" sx={{ mb: 2 }}>{analyticsData.routeStages?.total || 0}</Typography>
-                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>Total Route Stages</Typography>
-                  <Typography variant="body2" color="text.secondary">{analyticsData.trends?.last30Days?.routeStages || 0} created in last 30 days</Typography>
-                </Box>
-              </Card>
-            </Grid>
-          </Grid>
-        </>
-      )}
-      {!dataLoaded && !loading && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mb={3}>
-          <Box textAlign="center">
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>No destinations & routes data available</Typography>
-            <Button variant="contained" onClick={fetchAnalyticsData} startIcon={<RefreshIcon />}>Load Data</Button>
-          </Box>
-        </Box>
-      )}
-    </Box>
-  );
-
   // Render function for Gallery tab
   const renderGallery = () => (
     <Box>
@@ -5409,14 +5044,8 @@ const Analytics = () => {
       case 2:
         return renderBlogs();
       case 3:
-        return renderMembers();
-      case 4:
-        return renderLodgesPackages();
-      case 5:
-        return renderDestinationsRoutes();
-      case 6:
         return renderGallery();
-      case 7:
+      case 4:
         return renderForms();
       default:
         return renderOverview();
@@ -5768,7 +5397,7 @@ const Analytics = () => {
           WebkitTextFillColor: "transparent",
         }}
       >
-        Akira Safaris Dashboard
+        MK Consultancy Dashboard
       </Typography>
 
       <Card
@@ -5832,9 +5461,6 @@ const Analytics = () => {
       <OverviewHelpDialog />
       <ReviewsHelpDialog />
       <BlogsHelpDialog />
-      <AgentPartnershipHelpDialog />
-      <LodgesPackagesHelpDialog />
-      <DestinationsRoutesHelpDialog />
       <GalleryHelpDialog />
       <FormsHelpDialog />
     </Box>

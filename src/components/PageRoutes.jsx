@@ -19,7 +19,6 @@ import Documents from "./Documents/Documents";
 import UsersTable from "./Users/UsersTable";
 import Analytics from "./Analytics/Analytics";
 import Audit from "./Audit/Audit";
-import PublicMembers from "./PublicMembers/PublicMembers";
 import Projects from "./Projects/Projects";
 import ProjectView from "./Projects/ProjectView";
 import ProjectCreate from "./Projects/ProjectCreate";
@@ -124,7 +123,6 @@ function PageRoutes() {
             <Route path="consultations/:id" element={<ConsultationView />} />
             <Route path="map" element={<CharityMap />} />
             <Route path="documents" element={<Documents />} />
-            <Route path="public-members" element={<PublicMembers />} />
             <Route path="audit" element={<Audit />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="users" element={<UsersTable />} />

@@ -54,7 +54,7 @@ const Audit = () => {
     { value: "admin_user", label: "Admin User" },
     { value: "project", label: "Project" },
     { value: "document", label: "Document" },
-    { value: "inquiry", label: "Inquiry" },
+    { value: "contact", label: "Contact" },
     { value: "system", label: "System" },
     { value: "other", label: "Other" },
   ];
