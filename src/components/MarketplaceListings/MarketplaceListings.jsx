@@ -26,7 +26,7 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import { Inventory as InventoryIcon, Visibility } from "@mui/icons-material";
+import { Inventory as InventoryIcon, Visibility, Delete as DeleteIcon } from "@mui/icons-material";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All" },
@@ -172,6 +172,27 @@ const MarketplaceListings = () => {
       setSelectedListing((prev) => (prev ? { ...prev, ...data.data } : null));
     } catch (err) {
       setError(err.message || "Failed to reject listing");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteAdmin = async () => {
+    if (!selectedListing) return;
+    if (!window.confirm(`Permanently delete listing "${selectedListing.title || "Untitled"}"? This cannot be undone.`)) return;
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/marketplace/admin/listings/${selectedListing.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to delete");
+      setListings((prev) => prev.filter((l) => l.id !== selectedListing.id));
+      handleCloseDetail();
+    } catch (err) {
+      setError(err.message || "Failed to delete listing");
     } finally {
       setActionLoading(false);
     }
@@ -436,6 +457,15 @@ const MarketplaceListings = () => {
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDetail} color="inherit">
             Close
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={actionLoading ? <CircularProgress size={20} /> : <DeleteIcon />}
+            onClick={handleDeleteAdmin}
+            disabled={actionLoading}
+          >
+            Delete
           </Button>
           {canReject && (
             <Button
