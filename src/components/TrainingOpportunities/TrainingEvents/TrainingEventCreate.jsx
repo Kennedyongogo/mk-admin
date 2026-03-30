@@ -24,7 +24,7 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import LocationMapPicker from "../../Projects/LocationMapPicker";
 
-const TYPE_OPTIONS = ["Workshop", "Training"];
+const TYPE_OPTIONS = ["Workshop", "Training", "Field day", "Seminar"];
 
 const ChipArrayField = ({ label, value, onChange, placeholder }) => {
   const [inputValue, setInputValue] = useState("");

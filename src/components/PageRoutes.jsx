@@ -45,6 +45,9 @@ import GrantView from "./TrainingOpportunities/Grants/GrantView";
 import PartnerCreate from "./TrainingOpportunities/Partners/PartnerCreate";
 import PartnerEdit from "./TrainingOpportunities/Partners/PartnerEdit";
 import PartnerView from "./TrainingOpportunities/Partners/PartnerView";
+import JobOpportunityCreate from "./TrainingOpportunities/JobOpportunities/JobOpportunityCreate";
+import JobOpportunityEdit from "./TrainingOpportunities/JobOpportunities/JobOpportunityEdit";
+import JobOpportunityView from "./TrainingOpportunities/JobOpportunities/JobOpportunityView";
 
 function PageRoutes() {
   const [user, setUser] = useState(null);
@@ -136,6 +139,9 @@ function PageRoutes() {
             <Route path="marketplace/partners/create" element={<PartnerCreate />} />
             <Route path="marketplace/partners/:id" element={<PartnerView />} />
             <Route path="marketplace/partners/:id/edit" element={<PartnerEdit />} />
+            <Route path="marketplace/job-opportunities/create" element={<JobOpportunityCreate />} />
+            <Route path="marketplace/job-opportunities/:id" element={<JobOpportunityView />} />
+            <Route path="marketplace/job-opportunities/:id/edit" element={<JobOpportunityEdit />} />
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

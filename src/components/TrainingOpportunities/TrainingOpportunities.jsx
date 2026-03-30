@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
-import { Event, AttachMoney, Business, PersonAdd, Description } from "@mui/icons-material";
+import { Event, AttachMoney, Business, PersonAdd, Description, Work } from "@mui/icons-material";
 import TrainingEvents from "./TrainingEvents/TrainingEvents";
 import Grants from "./Grants/Grants";
 import Partners from "./Partners/Partners";
 import TrainingRegistrations from "./TrainingRegistrations/TrainingRegistrations";
 import GrantApplications from "./GrantApplications/GrantApplications";
+import JobOpportunities from "./JobOpportunities/JobOpportunities";
 
 function TabLabel({ icon, label }) {
   return (
@@ -36,6 +37,7 @@ export default function TrainingOpportunities() {
         <Tab label={<TabLabel icon={<Business fontSize="small" />} label="Partners" />} />
         <Tab label={<TabLabel icon={<PersonAdd fontSize="small" />} label="Registrations" />} />
         <Tab label={<TabLabel icon={<Description fontSize="small" />} label="Grant Applications" />} />
+        <Tab label={<TabLabel icon={<Work fontSize="small" />} label="Job Opportunities" />} />
       </Tabs>
 
       {subTab === 0 && <TrainingEvents />}
@@ -43,6 +45,7 @@ export default function TrainingOpportunities() {
       {subTab === 2 && <Partners />}
       {subTab === 3 && <TrainingRegistrations />}
       {subTab === 4 && <GrantApplications />}
+      {subTab === 5 && <JobOpportunities />}
     </Box>
   );
 }
